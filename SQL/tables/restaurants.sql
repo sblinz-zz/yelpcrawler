@@ -8,6 +8,6 @@ longitude decimal(11,8),
 latitude decimal(11,8),
 address varchar(255), --street address
 rating decimal(2,1), --yelp rating
-price_range smallint CHECK (price_range > 0), --number of yelp dollar signs
+price_range smallint, --number of yelp dollar signs
 url varchar(255)
 );

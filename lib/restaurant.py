@@ -29,6 +29,8 @@ MAX_LAT = 90
 MAX_RATING = 5
 MAX_PRICE = 4
 
+MAX_RESTAURANT_RADIUS = 10 #miles
+
 ##########################################
 #Basic class 
 ##########################################
@@ -55,25 +57,39 @@ class Restaurant:
 		self._url = url
 		
 		
-	#####################
+	####################################
 	#DB methods
-	#####################
+	####################################
 	
 	#static fetch methods
+	
+	#ConstructWithinThreshByLongLat()
+	#Desc: Construct instances for each item at ever increasing radii of (long, lat) until threshold number is found (or hit MAX_RADIUS)
+	#Return: an array of Restaurant objects
 	@staticmethod
-	def ConstructThreshObjectsByLongLat(long, lat, thresh):
+	def ConstructWithinThreshByLongLat(long, lat, thresh):
 		print
-		
+	
+	#ConstructWithinRadiusByLongLat()
+	#Desc: Construct instances for each restaurant within a given radius of (long, lat)
+	#Return: an array of Restaurant objects	
 	@staticmethod
 	def ConstructWithinRadiusByLongLat(long, lat, radius):
 		print
-		
-	#instance fetch methods
+
+	#ConstructFromDB()
+	#Desc: Construct instances of restaurants matching non-dummy parameters
+	#Return: an array of Restaurant objects
+	@staticmethod
 	def ConstructFromDB(cursor, name=DUMMY_NAME, long=DUMMY_LONG, lat=DUMMY_LAT, address=DUMMY_ADDRESS, rating=DUMMY_RATING, price=DUMMY_PRICE, url=DUMMY_URL,pkey=DUMMY_PKEY):
 		print
 	
-	#push this instance to the DB
-	def push(cursor):
+	#push methods
+	
+	#Push()
+	#Desc: insert an entry corresponding to this instance in the DB
+	#Return: bool (success/failure)
+	def Push(cursor):
 		print
 	
 	

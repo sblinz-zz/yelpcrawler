@@ -4,9 +4,13 @@
 
 Given a dropped map pin, return itemized data from multiple categories describing the area around the pin. Categories can include:
 -*Restaurants & Bars*
+
 -*Points of Interest* (museums, landmarks, parks)
+
 -*Census data* (housing, crime, income, etc.)
+
 -*Education* (schools, universities)
+
 -*Services*
 
 **Note:** This project is nothing more than an excuse to develop my SQL skills and learn some new Python tricks and libraries, especially web crawling. For this reason,
@@ -24,14 +28,16 @@ captured (or a practical maximum radius is reached).
 ### Data Collection and Management
 
 -Background and real-time data collection through our own Python web crawler (for practice!)
+
 -Later connect through common web APIs directly (Yelp, Google Places)
+
 -PostgreSQL database; direct querying at first (for practice!), later through an ORM
 
 ### Front-end
 Web UI with Google maps portal for pin dropping and results summary.
 
 ### Back-end
-Python scripts for data crawling, push/pull to database, and interfacing with web UI.
+Python scripts for data crawling, push/pull to database, and interfacing with web UI. PostgreSQL database.
 
 ### Feature Planning
 

@@ -81,7 +81,7 @@ class Restaurant:
 	#Desc: Construct instances of restaurants matching non-dummy parameters
 	#Return: an array of Restaurant objects
 	@staticmethod
-	def ConstructFromDB(cursor, name=DUMMY_NAME, long=DUMMY_LONG, lat=DUMMY_LAT, address=DUMMY_ADDRESS, rating=DUMMY_RATING, price=DUMMY_PRICE, url=DUMMY_URL,pkey=DUMMY_PKEY):
+	def ConstructFromDB(cursor, name=DUMMY_NAME, long=DUMMY_LONG, lat=DUMMY_LAT, address=DUMMY_ADDRESS, rating=DUMMY_RATING, price=DUMMY_PRICE, url=DUMMY_URL, pkey=DUMMY_PKEY):
 		print
 	
 	#push methods

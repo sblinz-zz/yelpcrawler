@@ -20,7 +20,7 @@ class YelpItem:
 		self.details = {}
 		for col in categories:
 			self.details[col] = None
-		self.details['type'] = type
+		self.details['type'] = type 	#high-level yelp category searched which gave this item
 		
 	def __init__(self, values):
 		self.details = {}

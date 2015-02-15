@@ -13,11 +13,18 @@ ylc = imp.load_source('', 'yelp_list_crawler.py')
 
 class CityCrawler:
 
-	###############
-	#Variables
-	##############
-	city = ""
-	ylc.YelpListCrawler yc 		
+	#################
+	#Class Variables
+	#################
+	
+	#Yelp specific
+	yelp_crawlers = [ylc.YelpListCrawler('Restaurants'), ylc.YelpListCrawler("Bars")]
+
+	def __init__(city):
+		self.city = city
+
+	def CrawlYelp():
+
 
 	def CrawlCity:
-		url = 
+		

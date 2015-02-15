@@ -6,30 +6,31 @@
 ##############################################################################################
 
 #packages
-import imp 						#better module importing
+import imp 						#nice module importing
 import urllib2 					#URL capture
-import re 						#regular expressions
-import json						#parsing json <-> python
+import re 						#regex's
+import json						#parsing json string <-> python dictionary
 from bs4 import BeautifulSoup	#HTML parse
 
 #load local modules
 yi = imp.load_source('', 'yelp_item.py')
 
-#################################################################################
+#####################################################################################
 # YELP LIST PAGE CRAWLER - Grab DB data from any Yelp page with a list of items
 #
-#	-Each such page has a JSON at the bottom of the page containing a tail URL,
+#	-Each Yelp list page has a JSON at the bottom of the page containing a tail URL,
 #		longitude/latitude for each of the items on the page
 #	-regex capture the inner JSON containing this data
 #	-JSON parse into objects for each Yelp item
-#	-URL tail appears in the HTML anchor of each items text and img link
+#	-URL tail appears in the HTML anchor of each items text and img link: use it to
+#		get remaining YelpItem object details
 #
-#################################################################################
+######################################################################################
 
 class YelpListCrawler:
 
 	def __init__(self, type):
-		self.type = type;
+		self.type = type;		#passed to each YelpItem as a classifier
 		self.items = []			#array of YelpItem objects
 
 	def GetHTMLStringFromURL(url):
@@ -47,10 +48,20 @@ class YelpListCrawler:
 				return yelp_list_json_match.group('yelp_list_json')
 		return None
 		
-	def GetPartialYelpItemsFromYelpJSON(json):
+	def GetYelpItemsFromYelpJSON(json):
+		"""
+		Yelp list page JSON contains url, longitude, latitude for each yelp item on the page
+		Create YelpItem instances and fill these details from a JSON dictionary
+
+		Params:
+			@json: Python dictionary representing inner JSON from bottom of Yelp list page HTML
+
+		Modify:
+			Add newly created YelpItems to member array self.items
+		"""
 		for key in json:
 			try:
-				int(key) 				
+				int(key) #json main keys are numbers of each item as they appear in the list			
 				curr_item = YelpItem(self.type)
 				if 'url' in json[key]:
 					curr_item.details['url'] = json[key]['url']

@@ -6,7 +6,6 @@
 ##############################################################################################
 
 import imp 						#better module importing
-import psycopg2 				#PostgreSQL connectivity
 
 #load local modules
 ylc = imp.load_source('', 'yelp_list_crawler.py')
@@ -17,17 +16,17 @@ class CityCrawler:
 	#Class Variables
 	#####################
 
-	yelp_cat = ["Restuarants", "Bars"]	#yelp categories that are crawled
+	yelp_cats = ["Restaurants", "Doctors"]	#yelp categories that are crawled
 	
-	def __init__(city, state):
-		self.city = city
+	def __init__(self, city, state, cats = yelp_cats):
+		self.city = city.replace(' ', '+')
 		self.state = state
-		self.yelp_crawlers = [ylc.YelpListCrawler(self.city, self.state, cat) for cat in yelp_types]
+		self.yelp_crawlers = [ylc.YelpListCrawler(self.city, self.state, cat) for cat in cats]
 
+	def CrawlYelp(self):
+		for ylc in self.yelp_crawlers:
+			ylc.Crawl(0)	#testing; crawl only first page HTML for now until we figure out how to get JSON for later items
 
-	def CrawlYelp():
-
-
-	def CrawlCity():
-		CrawlYelp()
+	def Crawl(self):
+		self.CrawlYelp()
 		

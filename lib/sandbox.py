@@ -5,34 +5,29 @@
 # Desc: testing space
 ##############################################################################################
 
-import restaurant_crawler as rc
+import imp
 
-url = "http://www.yelp.com/search?find_desc=Restaurants&find_loc=San+Francisco&ns=1"
-html = rc.GetHTMLStringFromURL(url)
-json_str = rc.RegExJSONFromYelpListPage(html)
-db_dicts = rc.GetDBDictsFromYelpJSON(rc.json.loads(json_str))
+cc= imp.load_source('', 'city_crawler.py')
+SF = cc.CityCrawler('San Francisco', 'CA')
+SF.Crawl()
 
-for dict in db_dicts:
-	for key in dict:
-		print key, dict[key]
+for crawler in SF.yelp_crawlers:
+	print "Yelp Category: " + cc.CityCrawler.yelp_cats[SF.yelp_crawlers.index(crawler)]
+	for item in crawler.items:
+		print "\tItem #: " + str(crawler.items.index(item))
+		for key in item.details:
+			if item.details[key] != None:
+				print "\t" + key + ": " + str(item.details[key])
 
 """
-
-def ScrapeAndSaveYelpItems(city, class):
-  list_of_items = scrape_yelp(city, class.yelp_type)
-  for each item in list_of_items:
-    class.new(item).save_to_db
-
-#####################################################
-
 ##########################
 #Connect to DB
 ##########################
+
+import psycopg2 				#PostgreSQL connectivity
+
 conn = psycopg2.connect(("dbname='{}' user='{}' host='{}' password='{}' port='{}'").format(private.DB_NAME, private.DB_USERNAME, private.DB_HOST, private.DB_PASSWORD, private.DB_PORT))
 cursor = conn.cursor()
-
-private = imp.load_source('', 'private_data.py')
-cities = imp.load_source('', 'cities.py')
 
 ######################################################################################
 

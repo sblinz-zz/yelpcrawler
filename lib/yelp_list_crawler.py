@@ -32,17 +32,18 @@ class YelpListCrawler:
 	def __init__(self, city, state, cat):
 		self.city = city
 		self.state = state
-		self.type = cat			#passed to each YelpItem as a category classifier
+		self.cat = cat			#passed to each YelpItem as a category classifier
 		self.items = []			#array of YelpItem objects
+		self.search_url = "http://www.yelp.com/search?find_desc=" + self.cat + "&find_loc=" + self.city + "%2C+" + self.state + "&ns=1#start=" 
 
-	def GetHTMLFromURL(url):
+	def GetHTMLFromURL(self, url):
 		try:
-			data = urllib2.urlopen(url_str)
+			data = urllib2.urlopen(url)
 			return data.read()
 		except ValueError:
 			print "Error: Invalid URL request"
 
-	def GetJSONFromYelpListHTML(html):
+	def GetJSONFromHTML(self, html):
 		yelp_list_regex = re.compile(r'Controller.*(?P<yelp_list_json>\{"1.*\}{3,3})')
 		if(html != None):
 			yelp_list_json_match = yelp_list_regex.search(html)
@@ -50,7 +51,7 @@ class YelpListCrawler:
 				return yelp_list_json_match.group('yelp_list_json')
 		return None
 		
-	def GetYelpItemsFromYelpJSON(json):
+	def GetItemsFromJSON(self, json_str):
 		"""
 		Yelp list page JSON contains url, longitude, latitude for each yelp item on the page
 		Create YelpItem instances and fill these 3 details from a JSON dictionary
@@ -61,19 +62,33 @@ class YelpListCrawler:
 		Modify:
 			Add newly created YelpItems to member array self.items
 		"""
-		for key in json:
+		json_dict = json.loads(json_str)
+		for key in json_dict:
 			try:
-				int(key) #json main keys are numbers of each item as they appear in the list			
-				curr_item = YelpItem(self.type)
-				if 'url' in json[key]:
-					curr_item.details['url'] = json[key]['url']
-				if 'location' in json[key]:
-					if 'longitude' in json[key]['location']:
-						curr_item.details['longitude'] = json[key]['location']['longitude']
-					if 'latitude' in json[key]['location']:
-						curr_item.details['latitude'] = json[key]['location']['latitude']
-						
-				self.items.append(curr_item)
-				
+				int(key) 		#json main keys (should be) numbers of each item as they appear in the list		
 			except ValueError:
 				continue
+
+			curr_item = YelpItem(self.cat)
+			if 'url' in json_dict[key]:
+				curr_item.details['url'] = json_dict[key]['url']
+			if 'location' in json_dict[key]:
+				if 'longitude' in json_dict[key]['location']:
+					curr_item.details['longitude'] = json_dict[key]['location']['longitude']
+				if 'latitude' in json_dict[key]['location']:
+					curr_item.details['latitude'] = json_dict[key]['location']['latitude']	
+			self.items.append(curr_item)
+
+	def Crawl(self, single_list_start_num=None):
+		"""
+		Crawl Yelp list page(s) for this instances city, state, and category
+
+		Params:
+			@single_list_start_num: grabs the items from the single Yelp List page that starts with item number single_list_start_num+1
+									if this is omitted then crawl all the list pages available
+		"""
+		if single_list_start_num != None:
+			url = self.search_url + str(single_list_start_num)
+			html = self.GetHTMLFromURL(url)
+			page_json = self.GetJSONFromHTML(html)
+			self.GetItemsFromJSON(page_json)

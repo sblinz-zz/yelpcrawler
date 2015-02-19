@@ -18,52 +18,6 @@ class YelpItem:
 	###################
 	def __init__(self, cat):
 		self.details = {}
-		for col in categories:
+		for col in self.__class__.categories:
 			self.details[col] = None
 		self.details['cat'] = cat 	#high-level yelp category searched which gave this item
-		
-	def __init__(self, type, values):
-		self.details = {}
-		for col in categories
-			if(values.has_key(col)):
-				self.details[col] = values[col]
-			else:
-				self.detials[col] = None	
-		self.details['cat'] = cat		#high-level yelp category searched which gave this item
-
-	###################
-	#DB methods
-	###################
-	"""
-	#static fetch methods
-	
-	#ConstructWithinThreshBylongitudelatitude()
-	#Summary: Construct instances for each item at ever increasing radii of (longitude, latitude) until threshold number is found (or hit MAX_RADIUS)
-	#Return: an array of Restaurant objects
-	@staticmethod
-	def ConstructWithinThreshBylongitudelatitude(longitude, latitude, thresh):
-		print
-	
-	#ConstructWithinRadiusBylongitudelatitude()
-	#Summary: Construct instances for each restaurant within a given radius of (longitude, latitude)
-	#Return: an array of Restaurant objects	
-	@staticmethod
-	def ConstructWithinRadiusBylongitudelatitude(longitude, latitude, radius):
-		print
-
-	#ConstructFromDB()
-	#Summary: Construct instances of restaurants matching non-dummy parameters
-	#Return: an array of Restaurant objects
-	@staticmethod
-	def ConstructFromDB(cursor, name=DUMMY_NAME, longitude=DUMMY_longitude, latitude=DUMMY_latitude, address=DUMMY_ADDRESS, rating=DUMMY_RATING, price=DUMMY_PRICE, url=DUMMY_URL, id=DUMMY_id):
-		print
-	
-	#push methods
-	
-	#Push()
-	#Desc: insert an entry corresponding to this instance in the DB
-	#Return: bool (success/failure)
-	def Push(cursor):
-		print
-	"""
-	

@@ -29,18 +29,20 @@ yi = imp.load_source('', 'yelp_item.py')
 
 class YelpListCrawler:
 
-	def __init__(self, type):
-		self.type = type;		#passed to each YelpItem as a classifier
+	def __init__(self, city, state, cat):
+		self.city = city
+		self.state = state
+		self.type = cat			#passed to each YelpItem as a category classifier
 		self.items = []			#array of YelpItem objects
 
-	def GetHTMLStringFromURL(url):
+	def GetHTMLFromURL(url):
 		try:
 			data = urllib2.urlopen(url_str)
 			return data.read()
 		except ValueError:
 			print "Error: Invalid URL request"
 
-	def GetJSONFromYelpListPage(html):
+	def GetJSONFromYelpListHTML(html):
 		yelp_list_regex = re.compile(r'Controller.*(?P<yelp_list_json>\{"1.*\}{3,3})')
 		if(html != None):
 			yelp_list_json_match = yelp_list_regex.search(html)
@@ -51,7 +53,7 @@ class YelpListCrawler:
 	def GetYelpItemsFromYelpJSON(json):
 		"""
 		Yelp list page JSON contains url, longitude, latitude for each yelp item on the page
-		Create YelpItem instances and fill these details from a JSON dictionary
+		Create YelpItem instances and fill these 3 details from a JSON dictionary
 
 		Params:
 			@json: Python dictionary representing inner JSON from bottom of Yelp list page HTML

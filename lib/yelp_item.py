@@ -10,25 +10,26 @@
 ##########################################
 class YelpItem:
 
-	#corresponds to DB columns in 'yelp_item' DB
-	categories = ["name", "longitude", "latitude", "address", "rating", "price", "url", "yelp_type"]
+	#corresponds to columns in 'yelp_item' DB
+	categories = ["name", "longitude", "latitude", "address", "rating", "price", "url", "cat"]
 
 	###################
 	#Initializers
 	###################
-	def __init__(self, type):
+	def __init__(self, cat):
 		self.details = {}
 		for col in categories:
 			self.details[col] = None
-		self.details['type'] = type 	#high-level yelp category searched which gave this item
+		self.details['cat'] = cat 	#high-level yelp category searched which gave this item
 		
-	def __init__(self, values):
+	def __init__(self, type, values):
 		self.details = {}
 		for col in categories
 			if(values.has_key(col)):
 				self.details[col] = values[col]
 			else:
 				self.detials[col] = None	
+		self.details['cat'] = cat		#high-level yelp category searched which gave this item
 
 	###################
 	#DB methods

@@ -13,18 +13,21 @@ ylc = imp.load_source('', 'yelp_list_crawler.py')
 
 class CityCrawler:
 
-	#################
+	#####################
 	#Class Variables
-	#################
-	
-	#Yelp specific
-	yelp_crawlers = [ylc.YelpListCrawler('Restaurants'), ylc.YelpListCrawler("Bars")]
+	#####################
 
-	def __init__(city):
+	yelp_cat = ["Restuarants", "Bars"]	#yelp categories that are crawled
+	
+	def __init__(city, state):
 		self.city = city
+		self.state = state
+		self.yelp_crawlers = [ylc.YelpListCrawler(self.city, self.state, cat) for cat in yelp_types]
+
 
 	def CrawlYelp():
 
 
-	def CrawlCity:
+	def CrawlCity():
+		CrawlYelp()
 		

@@ -10,5 +10,5 @@ address varchar(255), 			--street address
 rating decimal(2,1), 			--yelp rating
 price smallint, 				--number of yelp dollar signs
 url varchar(255)
-yelp_type varchar(255)
+cat varchar(255)				--yelp category
 );

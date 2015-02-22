@@ -34,7 +34,7 @@ class YelpListCrawler:
 		self.state = state
 		self.cat = cat			#passed to each YelpItem as a category classifier
 		self.items = []			#array of YelpItem objects
-		self.search_url = "http://www.yelp.com/search?find_desc=" + self.cat + "&find_loc=" + self.city + "%2C+" + self.state + "&ns=1#start=" 
+		self.search_url = "http://www.yelp.com/search?find_desc=" + str(self.cat) + "&find_loc=" + str(self.city) + "%2C+" + str(self.state) + "&ns=1#start=" 
 
 	def GetHTMLFromURL(self, url):
 		try:
@@ -57,7 +57,7 @@ class YelpListCrawler:
 		Create YelpItem instances and fill these 3 details from a JSON dictionary
 
 		Params:
-			@json: Python dictionary representing inner JSON from bottom of Yelp list page HTML
+			@json_str: Python dictionary representing inner JSON from bottom of Yelp list page HTML
 
 		Modify:
 			Add newly created YelpItems to member array self.items

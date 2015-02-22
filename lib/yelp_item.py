@@ -2,7 +2,7 @@
 # The Everything Pin Project
 # 
 # File: lib\yelp_item.py
-# Desc: Base class representing a generic yelp item
+# Desc: class representing a generic yelp item
 ##############################################################################################
 
 ##########################################

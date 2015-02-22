@@ -103,7 +103,7 @@ class YelpListCrawler:
 		c = conn.cursor()
 
 		for item in self.items:
-			SQL = "INSERT INTO " + 'yelp_items' + " ("
+			SQL = "INSERT INTO " + table_name + " ("
 			for i in range(len(cats)):
 				if i != len(cats)-1:
 					SQL += cats[i] + ","

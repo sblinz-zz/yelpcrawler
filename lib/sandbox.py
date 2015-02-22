@@ -32,6 +32,7 @@ for crawler in SF.yelp_crawlers:
 
 """
 TEST: Push stored yelp items to DB
+Status: Success
 """
 
 conn = psycopg2.connect(("dbname='{}' user='{}' password='{}' host='{}' port='{}'").format( \
@@ -40,34 +41,3 @@ conn = psycopg2.connect(("dbname='{}' user='{}' password='{}' host='{}' port='{}
 for crawler in SF.yelp_crawlers:
 	crawler.PushItemsToDB(conn)
 conn.close()
-
-""""
-##########################
-#Connect to DB
-##########################
-
-import psycopg2 				#PostgreSQL connectivity
-
-conn = psycopg2.connect(("dbname='{}' user='{}' host='{}' password='{}' port='{}'").format(private.DB_NAME, private.DB_USERNAME, private.DB_HOST, private.DB_PASSWORD, private.DB_PORT))
-cursor = conn.cursor()
-
-######################################################################################
-
-def insert_new_restaurant(name=DUMMY_NAME, long=DUMMY_LONG, lat=DUMMY_LAT, address=DUMMY_ADDRESS, rating=DUMMY_RATING, price=DUMMY_PRICE, url=DUMMY_URL):
-	cursor.execute("INSERT INTO restaurants (name, longitude, latitude, address, rating, price_range, url) values ('%s', '%d', '%d', '%s', '%d', '%d', '%s')" % (name, long, lat, address, rating, price, url))
-	conn.commit()
-
-def read_all_restaurant_names():
-	cursor.execute("SELECT name FROM restaurants")
-	return cursor.fetchall()
-
-def get_web_page(url):
-	data = urllib2.urlopen(url)
-	print data.read()
-
-########################################################################
-  
-insert_new_restaurant("Arby")
-insert_new_restaurant("Wendy", 130.121, 122.1121)
-print read_all_restaurant_names()
-"""

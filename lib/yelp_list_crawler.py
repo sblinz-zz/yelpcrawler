@@ -71,12 +71,12 @@ class YelpListCrawler:
 
 			curr_item = YelpItem(self.cat)
 			if 'url' in json_dict[key]:
-				curr_item.details['url'] = json_dict[key]['url']
+				curr_item.values['url'] = json_dict[key]['url']
 			if 'location' in json_dict[key]:
 				if 'longitude' in json_dict[key]['location']:
-					curr_item.details['longitude'] = json_dict[key]['location']['longitude']
+					curr_item.values['longitude'] = json_dict[key]['location']['longitude']
 				if 'latitude' in json_dict[key]['location']:
-					curr_item.details['latitude'] = json_dict[key]['location']['latitude']	
+					curr_item.values['latitude'] = json_dict[key]['location']['latitude']	
 			self.items.append(curr_item)
 
 	def Crawl(self, single_list_start_num=None):
@@ -86,9 +86,39 @@ class YelpListCrawler:
 		Params:
 			@single_list_start_num: grabs the items from the single Yelp List page that starts with item number single_list_start_num+1
 									if this is omitted then crawl all the list pages available
+
+		TESTING: currently only crawl the first ten items written into the static HTML
 		"""
 		if single_list_start_num != None:
 			url = self.search_url + str(single_list_start_num)
 			html = self.GetHTMLFromURL(url)
-			page_json = self.GetJSONFromHTML(html)
-			self.GetItemsFromJSON(page_json)
+			html_json = self.GetJSONFromHTML(html)
+			self.GetItemsFromJSON(html_json)
+
+	def Flush(self):
+		self.items = []
+
+	def PushItemsToDB(self, conn, table_name='yelp_items'):
+		cats = YelpItem.categories
+		c = conn.cursor()
+
+		for item in self.items:
+			SQL = "INSERT INTO " + 'yelp_items' + " ("
+			for i in range(len(cats)):
+				if i != len(cats)-1:
+					SQL += cats[i] + ","
+				else:
+					SQL += cats[i] + ") VALUES ("
+
+			for i in range(len(cats)):
+				if i != len(cats)-1:
+					SQL += "%(" + cats[i] + ")s, "
+				else:
+					SQL += "%(" + cats[i] + ")s);"
+
+			c.execute(SQL, item.values)
+		
+		conn.commit()
+		c.close()
+
+	

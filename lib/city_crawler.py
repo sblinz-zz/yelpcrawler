@@ -16,7 +16,7 @@ class CityCrawler:
 	#Class Variables
 	#####################
 
-	yelp_cats = ["Restaurants", "Doctors"]	#yelp categories that are crawled
+	yelp_cats = ["Restaurants", "Bars", "Doctors"]	#yelp categories that are crawled
 	
 	def __init__(self, city, state, cats = yelp_cats):
 		self.city = city.replace(' ', '+')

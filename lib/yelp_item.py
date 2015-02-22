@@ -17,7 +17,7 @@ class YelpItem:
 	#Initializers
 	###################
 	def __init__(self, cat):
-		self.details = {}
+		self.values = {}
 		for col in self.__class__.categories:
-			self.details[col] = None
-		self.details['cat'] = cat 	#high-level yelp category searched which gave this item
+			self.values[col] = None
+		self.values['cat'] = cat 	#high-level yelp category searched which gave this item

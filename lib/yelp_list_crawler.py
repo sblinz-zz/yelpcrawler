@@ -10,7 +10,6 @@ import imp 						#nice module importing
 import urllib2 					#URL capture
 import re 						#regex's
 import json						#parsing json string <-> python dictionary
-from bs4 import BeautifulSoup	#HTML parse
 
 #load local modules
 yi = imp.load_source('', 'yelp_item.py')
@@ -36,41 +35,51 @@ class YelpListCrawler:
 		self.state = state
 		self.cat = cat			#passed to each YelpItem as a category classifier
 		self.items = []			#array of YelpItem objects
-		self.snippet_url = "http://www.yelp.com/search/snippet?find_desc=" + str(self.cat) + "&find_loc=" + str(self.city) + "%2C+" + str(self.state) + "&ns=1#start=" 
+		self.snippet_url = "http://www.yelp.com/search/snippet?find_desc=" + str(self.cat) + "&find_loc=" + str(self.city) + "%2C+" + str(self.state) + \
+								"&start=" 
 
-	def GetHTMLFromURL(self, url):
+	def GetURLData(self, url):
 		try:
 			data = urllib2.urlopen(url)
 			return data.read()
 		except ValueError:
-			print "Error: Invalid URL request"
+			return None
 
-	def GetJSONFromHTML(self, html):
-		#yelp_list_regex = re.compile(r'Controller.*(?P<yelp_list_json>\{"[0-9]+.*\}{3,3})')				#JSON from static list page HTML
+	def GetJSONFromURL(self, url_data, ident='No ID'):
+		"""
+		Params:
+			@ident: logging identification
+		"""
+		#yelp_list_regex = re.compile(r'Controller.*(?P<yelp_list_json>\{"[0-9]+.*\}{3,3})')		#JSON from static list page HTML
 		yelp_list_regex = re.compile(r'"markers":.*?(?P<markers>"[0-9]+".*\}{3,3})')				#markers from snippet JSON
-		if(html != None):
-			yelp_list_json_match = yelp_list_regex.search(html)
+		if url_data != None:
+			yelp_list_json_match = yelp_list_regex.search(url_data)
 			if yelp_list_json_match != None:
-				return yelp_list_json_match.group('yelp_list_markers')
+				return "{" + yelp_list_json_match.group('markers')
 		return None
 		
-	def GetItemsFromJSON(self, json_str):
+	def GetItemsFromJSON(self, json_str, ident='No ID'):
 		"""
-		Yelp list page JSON contains url, longitude, latitude for each yelp item on the page
-		Create YelpItem instances and fill these 3 details from a JSON dictionary
+		Snippet JSON attribute 'markers' contains url, longitude, latitude for each yelp item on the page
+		Create YelpItem instances and fill these 3 details
 
 		Params:
-			@json_str: Python dictionary representing inner JSON from bottom of Yelp list page HTML
+			@json_str: Python dictionary representing a JSON
+			@ident: logging identification
 
 		Modify:
 			Add newly created YelpItems to member array self.items
 		"""
-		json_dict = json.loads(json_str)
+		try:
+			json_dict = json.loads(json_str)
+		except ValueError:
+			print "ERROR: JSON parse failed on " + ident
+
 		for key in json_dict:
 			try:
 				int(key) 		#json main keys (should be) numbers of each item as they appear in the list		
-			except ValueError :
-				continue
+			except ValueError:
+				print "Message: JSON contains non-integer attributes on " + ident
 
 			curr_item = YelpItem(self.cat)
 			if 'url' in json_dict[key]:
@@ -92,13 +101,50 @@ class YelpListCrawler:
 
 		TESTING: currently only crawl the first ten items written into the static HTML
 		"""
-		if single_list_start_num != None:
-			url = self.search_url + str(single_list_start_num)
-			html = self.GetHTMLFromURL(url)
-			html_json = self.GetJSONFromHTML(html)
-			self.GetItemsFromJSON(html_json)
+		start = 0
+		grab = True
+
+		url_data = None
+		json_str = None
+
+		url_fail_count = 0
+		json_fail_count = 0
+
+		while grab and start < 50:
+
+			ident = 'start ' + str(start)
+
+			if single_list_start_num != None:
+				start = single_list_start_num
+				grab = False
+			
+			if url_fail_count == 4:
+				print "Error: 4 failed URL requests...aborting Yelp list page crawl at " + ident
+
+			if json_fail_count == 4:
+				print "Message: 4 failed JSON extractions...crawl considerered complete at " + ident
+			
+			url = self.snippet_url + str(start)
+
+			url_data = self.GetURLData(url)
+			if url_data != None:
+				json_str = self.GetJSONFromURL(url_data, ident)
+			else:
+				url_fail_count += 1
+				continue				#don't count failed json extraction if URL failed
+
+			if json_str != None:
+				self.GetItemsFromJSON(json_str, ident)
+			else:
+				json_fail_count += 1
+
+			start += 10
+
 
 	def Flush(self):
+		"""
+		Empty all YelpItem data captured
+		"""
 		self.items = []
 
 	def PushItemsToDB(self, conn, table_name='yelp_items'):

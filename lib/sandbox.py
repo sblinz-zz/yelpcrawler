@@ -16,36 +16,27 @@ private = imp.load_source('', 'private.py')
 ylc = imp.load_source('', 'yelp_list_crawler.py')
 yi = imp.load_source('', 'yelp_item.py')
 
-"""
-TEST: Crawl HTML Yelp list page and grab basic DB info from bottom-of-page 'Controller' JSON
-Status: Success
-Notes: This only works for first 10 items because HTML source is not updated when list page is changed
-
-SF = cc.CityCrawler('San Francisco', 'CA')
-SF.Crawl()
-
-for crawler in SF.yelp_crawlers:
-	print "Yelp Category: " + cc.CityCrawler.yelp_cats[SF.yelp_crawlers.index(crawler)]
-	for item in crawler.items:
-		print "\tItem #: " + str(crawler.items.index(item))
-		for key in item.details:
-			if item.details[key] != None:
-				print "\t" + key + ": " + str(item.details[key])
-"""
 ##############################################################################################
 """
-TEST: Push stored yelp items to DB
-Status: Success
-Notes: No duplicity checks (yet)
+TEST: Main operations test: launch crawling methods
+"""
+SF = cc.CityCrawler('San Francisco', 'CA')
+SF.Crawl()
 
 conn = psycopg2.connect(("dbname='{}' user='{}' password='{}' host='{}' port='{}'").format( \
 							private.DB_NAME, private.DB_USERNAME, private.DB_PASSWORD, private.DB_HOST, private.DB_PORT))
 
 for crawler in SF.yelp_crawlers:
 	crawler.PushItemsToDB(conn)
+	print "Yelp Category: " + cc.CityCrawler.yelp_cats[SF.yelp_crawlers.index(crawler)]
+	for item in crawler.items:
+		print "\tItem #: " + str(crawler.items.index(item))
+		for key in item.values:
+			if item.values[key] != None:
+				print "\t" + key + ": " + str(item.values[key])
+
 conn.close()
 
-"""
 ##############################################################################################
 
 """
@@ -73,12 +64,12 @@ while True:
 	yelp_list_regex = re.compile(r'"markers":.*?(?P<markers>"[0-9]+".*\}{3,3})')
 	if data != None:
 
-		""" Check that the regex is grabbing the right sub-JSON
-		yelp_list_json_match = yelp_list_regex.search(data)
-		if yelp_list_json_match != None:
-			f.write(yelp_list_json_match.group("markers"))
-			f.write("\n########################################\n")
-		"""
+		#Check that the regex is grabbing the right sub-JSON
+		#yelp_list_json_match = yelp_list_regex.search(data)
+		#if yelp_list_json_match != None:
+		#	f.write(yelp_list_json_match.group("markers"))
+		#	f.write("\n########################################\n")
+	
 		yelp_list_json_match = yelp_list_regex.search(data)
 		if yelp_list_json_match != None:
 			json_str = "{" + yelp_list_json_match.group("markers")

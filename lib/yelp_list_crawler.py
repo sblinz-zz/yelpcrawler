@@ -17,24 +17,26 @@ yi = imp.load_source('', 'yelp_item.py')
 
 #####################################################################################
 # YELP LIST PAGE CRAWLER - Grab DB data from any Yelp page with a list of items
-#
-#	-Each Yelp list page has a JSON at the bottom of the page containing a tail URL,
-#		longitude/latitude for each of the items on the page
-#	-regex capture the inner JSON containing this data
+#	
+#	-A so-called 'snippet' URL can be built for a given category, location, and 
+#		item start number which returns a large JSON
+#	-The main JSON contains an attribute 'markers' which holds basic DB data url,
+#		longitude, latitude on the 10 items from start+1 to start+10
+#	-regex capture the JSON with the basic data
 #	-JSON parse into objects for each Yelp item
-#	-URL tail appears in the HTML anchor of each items text and img link: use it to
-#		get remaining YelpItem object details
+#	-URL tail and remaining DB info appears in large text value for another attribute 
+#		'search_results' which is parsed to extract this data
 #
 ######################################################################################
 
 class YelpListCrawler:
 
 	def __init__(self, city, state, cat):
-		self.city = city
+		self.city = city.replace(' ', '+')
 		self.state = state
 		self.cat = cat			#passed to each YelpItem as a category classifier
 		self.items = []			#array of YelpItem objects
-		self.search_url = "http://www.yelp.com/search?find_desc=" + str(self.cat) + "&find_loc=" + str(self.city) + "%2C+" + str(self.state) + "&ns=1#start=" 
+		self.snippet_url = "http://www.yelp.com/search/snippet?find_desc=" + str(self.cat) + "&find_loc=" + str(self.city) + "%2C+" + str(self.state) + "&ns=1#start=" 
 
 	def GetHTMLFromURL(self, url):
 		try:
@@ -44,11 +46,12 @@ class YelpListCrawler:
 			print "Error: Invalid URL request"
 
 	def GetJSONFromHTML(self, html):
-		yelp_list_regex = re.compile(r'Controller.*(?P<yelp_list_json>\{"1.*\}{3,3})')
+		#yelp_list_regex = re.compile(r'Controller.*(?P<yelp_list_json>\{"[0-9]+.*\}{3,3})')				#JSON from static list page HTML
+		yelp_list_regex = re.compile(r'"markers":.*?(?P<markers>"[0-9]+".*\}{3,3})')				#markers from snippet JSON
 		if(html != None):
 			yelp_list_json_match = yelp_list_regex.search(html)
 			if yelp_list_json_match != None:
-				return yelp_list_json_match.group('yelp_list_json')
+				return yelp_list_json_match.group('yelp_list_markers')
 		return None
 		
 	def GetItemsFromJSON(self, json_str):
@@ -66,7 +69,7 @@ class YelpListCrawler:
 		for key in json_dict:
 			try:
 				int(key) 		#json main keys (should be) numbers of each item as they appear in the list		
-			except ValueError:
+			except ValueError :
 				continue
 
 			curr_item = YelpItem(self.cat)

@@ -19,13 +19,13 @@ class CityCrawler:
 	yelp_cats = ["Restaurants", "Bars", "Doctors"]	#yelp categories that are crawled
 	
 	def __init__(self, city, state, cats = yelp_cats):
-		self.city = city.replace(' ', '+')
+		self.city = city
 		self.state = state
 		self.yelp_crawlers = [ylc.YelpListCrawler(self.city, self.state, cat) for cat in cats]
 
 	def CrawlYelp(self):
 		for ylc in self.yelp_crawlers:
-			ylc.Crawl(0)	#testing; crawl only first page HTML for now until we figure out how to get JSON for later items
+			ylc.Crawl()
 
 	def Crawl(self):
 		self.CrawlYelp()

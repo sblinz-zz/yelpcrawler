@@ -13,6 +13,7 @@ import json				#parsing json string <-> python dictionary
 import psycopg2			#DB connection
 
 #load local modules
+private = imp.load_source('', 'private.py')
 yi = imp.load_source('', 'yelp_item.py')
 
 #####################################################################################
@@ -29,12 +30,12 @@ yi = imp.load_source('', 'yelp_item.py')
 #		...
 #		"105" : 
 #			{ 
+#			...
 #			"url" : "biz/la-ciudad-de-mexico-san-francisco",
 #		 	"location" :
-#				{ "latitude" : 37.784610600000001, "longitude" : -122.46443840000001},
-#			...
-#			"search_results" : "..."
+#				{ "latitude" : 37.784610600000001, "longitude" : -122.46443840000001}
 #			}
+#			...
 #		...
 #	}
 #
@@ -93,7 +94,7 @@ class YelpListCrawler:
 
 		return None
 
-	def GetDataFromSnippetMarkersJSON(self, markers_json, ident='No ID'):
+	def GetDataFromMarkersJSON(self, markers_json, ident='No ID'):
 		"""
 		Snippet JSON attribute 'markers' contains attributes url, longitude, latitude
 		Create YelpItem instances and fill these details
@@ -141,47 +142,37 @@ class YelpListCrawler:
 
 			self.items.append(curr_item)
 
-	def Crawl(self, single_list_start_num=None):
+	def Crawl(self, conn, start=0, end=None, push_period=100):
 		"""
 		Crawl Yelp list page(s) for this instances city, state, and search_phrase 
 
 		Params:
-			@single_list_start_num: grabs the items from the single Yelp List page that starts with item number single_list_start_num+1
-									if this is omitted then crawl all the list pages until fail
+			@start: the first snippet url start number to crawl
+			@end: the last snippet url start number to crawl (inclusive)
+			@push_period: how often to push the populated YelpItems to the DB and flush 
 		"""
-		grab = True
-		start = 0
-
+		item_count = start
 		snippet_data = None
 		markers_json = None
 
 		url_fail_count = None
 		json_fail_count = None
 
-		while grab:
+		while item_count <= end:
 
-			private = imp.load_source('', 'private.py')
-
-			if start > 0 and start % 100 == 0:
-				conn = psycopg2.connect(("dbname='{}' user='{}' password='{}' host='{}' port='{}'").format( \
-							private.DB_NAME, private.DB_USERNAME, private.DB_PASSWORD, private.DB_HOST, private.DB_PORT))
+			if len(self.items) == push_period:
 				self.PushItemsToDB(conn)
-				conn.close()
 				self.Flush()
-
-			if single_list_start_num != None:
-				grab = False
-				start = single_list_start_num
 			
-			ident = 'start=' + str(start)
+			ident = 'start=' + str(item_count)
 			
 			if url_fail_count == 4:
-				print "[Err] 4 failed URL requests...stopping crawl: " + ident
+				print "[Err] 4 URL errors...stopping crawl: " + ident
 
 			if json_fail_count == 4:
-				print "[Err] 4 failed JSON extractions...stopping crawl: " + ident
+				print "[Err] 4 'markers' JSON errors...stopping crawl: " + ident
 			
-			url = self.snippet_url + str(start)
+			url = self.snippet_url + str(item_count)
 			snippet_data = self.GetURLData(url)
 			if snippet_data != None:
 				markers_json = self.GetMarkersJSONFromSnippetData(snippet_data, ident)
@@ -190,20 +181,22 @@ class YelpListCrawler:
 				continue				#don't count failed json extraction if URL failed
 
 			if markers_json != None:
-				self.GetDataFromSnippetMarkersJSON(markers_json, ident)
+				self.GetDataFromMarkersJSON(markers_json, ident)
 			else:
 				json_fail_count += 1
 
-			start += 10
+			item_count += 10
 
 
 	def Flush(self):
 		"""
 		Empty all YelpItem data captured
 		"""
+		print "[Msg] Flushing " + str(len(self.items)) + " local item's data"
 		self.items = []
 
 	def PushItemsToDB(self, conn, table_name='yelp_items'):
+		print "[Msg] Pushing " + str(len(self.items)) + " items to DB"
 		cats = YelpItem.cats
 		c = conn.cursor()
 
@@ -227,6 +220,5 @@ class YelpListCrawler:
 				print "[Err] Data error pushing row to DB: " + e.pgerror.replace('ERROR: ', '')
 
 		conn.commit()
-		c.close()
 
 	

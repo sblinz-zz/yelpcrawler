@@ -10,14 +10,14 @@
 ##########################################
 class YelpItem:
 
-	#corresponds to columns in 'yelp_item' DB
-	categories = ["name", "longitude", "latitude", "address", "rating", "price", "url", "cat"]
+	cats = ["name", "longitude", "latitude", "address", "rating", "price", "url", "search_phrase"]
 
 	###################
 	#Initializers
 	###################
-	def __init__(self, cat):
+	def __init__(self, search_phrase):
 		self.values = {}
-		for col in self.__class__.categories:
+		
+		for col in self.__class__.cats:
 			self.values[col] = None
-		self.values['cat'] = cat 	#high-level yelp category searched which gave this item
+		self.values['search_phrase'] = search_phrase		#yelp search phrase under which this item was listed

@@ -18,7 +18,7 @@ yi = imp.load_source('', 'yelp_item.py')
 
 ##############################################################################################
 """
-TEST: Main operations test: launch crawling methods
+TEST: Main operations: crawl, push to DB, print items
 """
 SF = cc.CityCrawler('San Francisco', 'CA')
 SF.Crawl()
@@ -26,15 +26,17 @@ SF.Crawl()
 conn = psycopg2.connect(("dbname='{}' user='{}' password='{}' host='{}' port='{}'").format( \
 							private.DB_NAME, private.DB_USERNAME, private.DB_PASSWORD, private.DB_HOST, private.DB_PORT))
 
+f = open('sandbox.log', 'w')
 for crawler in SF.yelp_crawlers:
 	crawler.PushItemsToDB(conn)
-	print "Yelp Category: " + cc.CityCrawler.yelp_cats[SF.yelp_crawlers.index(crawler)]
+	f.write("Yelp Category: " + cc.CityCrawler.yelp_cats[SF.yelp_crawlers.index(crawler)] + '\n')
 	for item in crawler.items:
-		print "\tItem #: " + str(crawler.items.index(item))
+		f.write("\tItem #: " + str(crawler.items.index(item)) + '\n')
 		for key in item.values:
 			if item.values[key] != None:
-				print "\t" + key + ": " + str(item.values[key])
-
+				f.write("\t" + key + ": " + str(item.values[key]) + '\n')
+				if key == 'url' and 'adredir' in item.values[key]:
+					f.write(item.values[key] + '\n')
 conn.close()
 
 ##############################################################################################

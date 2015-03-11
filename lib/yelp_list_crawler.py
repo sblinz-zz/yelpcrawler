@@ -13,7 +13,6 @@ import json				#parsing json string <-> python dictionary
 import psycopg2			#DB connection
 
 #load local modules
-private = imp.load_source('', 'private.py')
 yi = imp.load_source('', 'yelp_item.py')
 
 #####################################################################################
@@ -142,7 +141,7 @@ class YelpListCrawler:
 
 			self.items.append(curr_item)
 
-	def Crawl(self, conn, start=0, end=None, push_period=100):
+	def Crawl(self, db, start=0, end=None, push_period=100):
 		"""
 		Crawl Yelp list page(s) for this instances city, state, and search_phrase 
 
@@ -161,7 +160,7 @@ class YelpListCrawler:
 		while item_count <= end:
 
 			if len(self.items) == push_period:
-				self.PushItemsToDB(conn)
+				self.PushItemsToDB(db)
 				self.Flush()
 			
 			ident = 'start=' + str(item_count)
@@ -195,13 +194,13 @@ class YelpListCrawler:
 		print "[Msg] Flushing " + str(len(self.items)) + " local item's data"
 		self.items = []
 
-	def PushItemsToDB(self, conn, table_name='yelp_items'):
+	def PushItemsToDB(self, db):
 		print "[Msg] Pushing " + str(len(self.items)) + " items to DB"
 		cats = YelpItem.cats
-		c = conn.cursor()
+		c = db.conn.cursor()
 
 		for item in self.items:
-			SQL = "INSERT INTO " + table_name + " ("
+			SQL = "INSERT INTO " + db.table + " ("
 			for i in range(len(cats)):
 				if i != len(cats)-1:
 					SQL += cats[i] + ","
@@ -216,9 +215,10 @@ class YelpListCrawler:
 
 			try:
 				c.execute(SQL, item.values)
+				db.conn.commit()
 			except psycopg2.DataError as e:
 				print "[Err] Data error pushing row to DB: " + e.pgerror.replace('ERROR: ', '')
 
-		conn.commit()
+		
 
 	

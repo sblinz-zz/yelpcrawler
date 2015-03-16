@@ -19,7 +19,9 @@ Given a dropped map pin, return itemized data from multiple categories describin
 ## Status
 
 January 2015: High-level design
+
 February 2015: Investigate Yelp data structure, start building crawler
+
 March 2015: Refining Yelp crawler. Scrape Yelp searches, parse data into internal data structures, push to database
 
 ## Design Notes

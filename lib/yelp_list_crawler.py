@@ -39,13 +39,15 @@ yi = imp.load_source('', 'yelp_item.py')
 #	}
 #
 #	-regex capture the markers JSON
-#	-parse the markers json into YelpItem instances for each of the items
+#	-parse the markers json and make YelpItem instances for each of the items with
+#		the basic DB info
 #
 #	GRABBING REMAINING DB INFO:
-#	-Each item attribute in the 'markers' JSON has an attribute 'search_results' 
-#		whose value is a string that contains the url and the remaining DB info we
-#		care about for all 10 items.
-#
+#	-The main snippet JSON contains an attribute 'search_results' whose value is a
+#		long string. Buried in this string is the remaining DB info we care about
+#		for the 10 items covered by each snippet page
+#	-The url we grabbed from the url attribute above can be used as an anchor to find
+#		the rest of the DB info for each item
 ######################################################################################
 
 class YelpListCrawler:
@@ -60,6 +62,9 @@ class YelpListCrawler:
 							"%2C+" + str(self.state) + "&start=" 
 
 	def GetURLData(self, url):
+		"""
+		Return a string of the the full source of the given url
+		"""
 		try:
 			data = urllib2.urlopen(url)
 			data_str = data.read()
@@ -68,39 +73,46 @@ class YelpListCrawler:
 			else:
 				print "[Err] URL data empty: " + url
 				return None
-		except ValueError:									#incorrect URL format
+		except ValueError:									#Incorrect URL format
 			print "[Err] Invalid URL format: " + url
 		except urllib2.URLError:							#Cannot connect to URL
 			print "[Err] Could not connect to URL: " + url 
 
 		return None
 
-	def GetMarkersJSONFromSnippetData(self, snippet_data, ident='No ID'):
+	"""
+	######################
+	'markers' JSON methods
+	######################
+	"""
+	def GetMarkersJSONFromSnippetData(self, snippet_json, ident='No ID'):
 		"""
 		Regex capture the 'markers' JSON string from the full snippet data
 
 		Params:
-			@snippet_data: a string of the full snippet data
-			@ident: logging identification
+			@snippet_json: a string of the full snippet JSON
+			@ident: logging id
+
+		Return:
+			string containing the 'markers' json from the snippet data
 		"""
-		if snippet_data != None:
+		if snippet_json != None:
 			snippet_markers_json_regex = re.compile(r'"markers":.*?(?P<markers>"[0-9]+".*\}{3,3})')
-			snippet_markers_regex_match = snippet_markers_json_regex.search(snippet_data)
+			snippet_markers_regex_match = snippet_markers_json_regex.search(snippet_json)
 			if snippet_markers_regex_match != None:
 				return "{" + snippet_markers_regex_match.group('markers')
 			else:
 				print "[Err] No match for 'markers' JSON in snippet data: " + ident
+				return None
 
-		return None
-
-	def GetDataFromMarkersJSON(self, markers_json, ident='No ID'):
+	def MakeBasicYelpItemsFromMarkersJSON(self, markers_json, ident='No ID'):
 		"""
 		Snippet JSON attribute 'markers' contains attributes url, longitude, latitude
 		Create YelpItem instances and fill these details
 
 		Params:
 			@markers_json: a string of the markers json
-			@ident: logging identification
+			@ident: logging id
 
 		Modify:
 			Add newly created YelpItems to member array self.items
@@ -141,21 +153,55 @@ class YelpListCrawler:
 
 			self.items.append(curr_item)
 
+	"""
+	#########################################
+	'search_results' and full DB data methods
+	#########################################
+	"""
+
+	def GetSearchResultsTextFromSnippet(self, snippet_json, ident="No ID"):
+		"""
+		Grab and return the text value of the 'search_results' attribute of the main snippet JSON
+
+		Params:
+			@snippet_json: a string of the full snippet JSON
+			@ident: logging id
+
+		Returns:
+			a string of the text value of the 'search_results' attribute
+		"""
+		if snippet_json != None:
+			snippet_search_results_value_regex = re.compile(r'"search_results":.*?(?P<search_results>".*),')
+			snippet_search_results_regex_match = snippet_search_results_value_regex.search(snippet_json)
+			if snippet_search_results_regex_match != None:
+				return snippet_search_results_regex_match.group('search_results')
+			else:
+				print "[Err] No match for 'search_results' text value in snippet data: " + ident
+				return None
+
+	"""
+	###########################################################
+	Operational methods: Crawl, Push to DB, Flush local storage
+	###########################################################
+	"""
 	def Crawl(self, db, start=0, end=None, push_period=100):
 		"""
 		Crawl Yelp list page(s) for this instances city, state, and search_phrase 
 
 		Params:
+			@db: a YelpDBConn object passed to DB push method
 			@start: the first snippet url start number to crawl
 			@end: the last snippet url start number to crawl (inclusive)
 			@push_period: how often to push the populated YelpItems to the DB and flush 
 		"""
 		item_count = start
-		snippet_data = None
+		snippet_json = None
 		markers_json = None
 
 		url_fail_count = None
 		json_fail_count = None
+
+		f = open('search_results.log', 'w')
 
 		while item_count <= end:
 
@@ -172,29 +218,30 @@ class YelpListCrawler:
 				print "[Err] 4 'markers' JSON errors...stopping crawl: " + ident
 			
 			url = self.snippet_url + str(item_count)
-			snippet_data = self.GetURLData(url)
-			if snippet_data != None:
-				markers_json = self.GetMarkersJSONFromSnippetData(snippet_data, ident)
+			snippet_json = self.GetURLData(url)
+			if snippet_json != None:
+				markers_json = self.GetMarkersJSONFromSnippetData(snippet_json, ident)
 			else:
 				url_fail_count += 1
 				continue				#don't count failed json extraction if URL failed
 
 			if markers_json != None:
-				self.GetDataFromMarkersJSON(markers_json, ident)
+				self.MakeBasicYelpItemsFromMarkersJSON(markers_json, ident)
 			else:
 				json_fail_count += 1
 
+			f.write(self.GetSearchResultsTextFromSnippet(snippet_json))
+			f.write("\n\n")
+
 			item_count += 10
 
-
-	def Flush(self):
-		"""
-		Empty all YelpItem data captured
-		"""
-		print "[Msg] Flushing " + str(len(self.items)) + " local item's data"
-		self.items = []
-
 	def PushItemsToDB(self, db):
+		"""
+		Push all the YelpItem instance data in self.items to the DB
+
+		Params:
+			@db: a YelpDBConn object containing a psycopg2 DB connection
+		"""
 		print "[Msg] Pushing " + str(len(self.items)) + " items to DB"
 		cats = YelpItem.cats
 		c = db.conn.cursor()
@@ -219,6 +266,12 @@ class YelpListCrawler:
 			except psycopg2.DataError as e:
 				print "[Err] Data error pushing row to DB: " + e.pgerror.replace('ERROR: ', '')
 
+	def Flush(self):
+		"""
+		Clear all YelpItem data stored in self.items
+		"""
+		print "[Msg] Flushing " + str(len(self.items)) + " local item's data"
+		self.items = []
 		
 
 	

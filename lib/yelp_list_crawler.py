@@ -105,7 +105,7 @@ class YelpListCrawler:
 				print "[Err] No match for 'markers' JSON in snippet data: " + ident
 				return None
 
-	def MakeBasicYelpItemsFromMarkersJSON(self, markers_json, ident='No ID'):
+	def GetYelpItemObjectsFromMarkersJSON(self, markers_json, ident='No ID'):
 		"""
 		Snippet JSON attribute 'markers' contains attributes url, longitude, latitude
 		Create YelpItem instances and fill these details
@@ -119,39 +119,42 @@ class YelpListCrawler:
 		"""
 		try:
 			json_dict = json.loads(markers_json)
+			items = []
+			for item_no in json_dict:
+				try:
+					int(item_no) 		#json main item_nos (should be) numbers of each item as they appear in the list		
+				except ValueError:
+					continue
+
+				curr_item = YelpItem(self.search_phrase)
+
+				#capture items URL attribute
+				if 'url' in json_dict[item_no]:
+					curr_item.values['url'] = json_dict[item_no]['url']
+				else:
+					print "[Err] URL attribute missing from 'markers' JSON item " + str(item_no) + ": " + ident
+
+				#capture items location attribute
+				if 'location' in json_dict[item_no]:
+					if 'longitude' in json_dict[item_no]['location']:
+						curr_item.values['longitude'] = json_dict[item_no]['location']['longitude']
+					else:
+						print "[Err] Location : longitude attribute missing from 'markers' JSON item " + str(item_no) + ": " + ident
+
+					if 'latitude' in json_dict[item_no]['location']:
+						curr_item.values['latitude'] = json_dict[item_no]['location']['latitude']	
+					else:
+						print "[Err] Location : latitude attribute missing from 'markers' JSON item " + str(item_no) + ": " + ident
+
+				else:
+					print "[Err] Location attribute missing from 'markers' JSON item " + str(item_no) + ": " + ident
+
+				items.append(curr_item)
+
+			return items
+
 		except ValueError:
 			print "[Err] Converting 'markers' JSON failed: " + ident
-
-		for item_no in json_dict:
-			try:
-				int(item_no) 		#json main item_nos (should be) numbers of each item as they appear in the list		
-			except ValueError:
-				continue
-
-			curr_item = YelpItem(self.search_phrase)
-
-			#capture items URL attribute
-			if 'url' in json_dict[item_no]:
-				curr_item.values['url'] = json_dict[item_no]['url']
-			else:
-				print "[Err] URL attribute missing from 'markers' JSON item " + str(item_no) + ": " + ident
-
-			#capture items location attribute
-			if 'location' in json_dict[item_no]:
-				if 'longitude' in json_dict[item_no]['location']:
-					curr_item.values['longitude'] = json_dict[item_no]['location']['longitude']
-				else:
-					print "[Err] Location : longitude attribute missing from 'markers' JSON item " + str(item_no) + ": " + ident
-
-				if 'latitude' in json_dict[item_no]['location']:
-					curr_item.values['latitude'] = json_dict[item_no]['location']['latitude']	
-				else:
-					print "[Err] Location : latitude attribute missing from 'markers' JSON item " + str(item_no) + ": " + ident
-
-			else:
-				print "[Err] Location attribute missing from 'markers' JSON item " + str(item_no) + ": " + ident
-
-			self.items.append(curr_item)
 
 	"""
 	#########################################
@@ -197,13 +200,14 @@ class YelpListCrawler:
 		item_count = start
 		snippet_json = None
 		markers_json = None
+		new_itmes = [] #temp store for newly created YelpItem instances
 
 		url_fail_count = None
 		json_fail_count = None
 
 		f = open('search_results.log', 'w')
 
-		while item_count <= end:
+		while item_count < end:
 
 			if len(self.items) == push_period:
 				self.PushItemsToDB(db)
@@ -226,10 +230,15 @@ class YelpListCrawler:
 				continue				#don't count failed json extraction if URL failed
 
 			if markers_json != None:
-				self.MakeBasicYelpItemsFromMarkersJSON(markers_json, ident)
+				new_items = self.GetYelpItemObjectsFromMarkersJSON(markers_json, ident)
 			else:
 				json_fail_count += 1
 
+			f.write("Short URLs for the snippet @ " + str(item_count) + "\n")
+			for item in new_items:
+				f.write("\t" + item.values['url'] + "\n")
+
+			f.write("\nsearch_results text:")
 			f.write(self.GetSearchResultsTextFromSnippet(snippet_json))
 			f.write("\n\n")
 

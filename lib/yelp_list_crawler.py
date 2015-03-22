@@ -179,12 +179,13 @@ class YelpListCrawler:
 			if snippet_search_results_regex_match != None:
 				search_results = snippet_search_results_regex_match.group('search_results')
 
-				#Clean up search_results a little
+				#Clean up search_results to make it more HTML-like
 				search_results = search_results.replace("\u003c", "<")
 				search_results = search_results.replace("\u003e", ">")
 				search_results = search_results.replace("\\n", "\n")
-				
-			return search_results
+				search_results = search_results.replace('\\"', '"')
+				return search_results
+
 			else:
 				print "[Err] No match for 'search_results' text value in snippet data: " + ident
 				return None
@@ -259,6 +260,7 @@ class YelpListCrawler:
 
 			#Get and parse seach_results text
 			search_results = self.GetSearchResultsFromSnippet(snippet_json, ident)	
+			f.write(search_results)
 			self.UpdateYelpItemsWithSearchResultsData(new_items, search_results)
 
 			item_count += 10

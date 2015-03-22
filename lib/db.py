@@ -29,5 +29,4 @@ class DB_Connection:
 class YelpDBConn(DB_Connection):
 
 	def __init__(self, table='yelp_items'):
-		self.Connect()
 		self.table = table

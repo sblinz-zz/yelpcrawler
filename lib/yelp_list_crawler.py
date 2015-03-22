@@ -85,7 +85,7 @@ class YelpListCrawler:
 	'markers' JSON methods
 	######################
 	"""
-	def GetMarkersJSONFromSnippetData(self, snippet_json, ident='No ID'):
+	def GetMarkersJSONFromSnippet(self, snippet_json, ident='No ID'):
 		"""
 		Regex capture the 'markers' JSON string from the full snippet data
 
@@ -114,8 +114,8 @@ class YelpListCrawler:
 			@markers_json: a string of the markers json
 			@ident: logging id
 
-		Modify:
-			Add newly created YelpItems to member array self.items
+		Return:
+			An array of newly created YelpItem instances with data from markers JSON
 		"""
 		try:
 			json_dict = json.loads(markers_json)
@@ -162,7 +162,7 @@ class YelpListCrawler:
 	#########################################
 	"""
 
-	def GetSearchResultsTextFromSnippet(self, snippet_json, ident="No ID"):
+	def GetSearchResultsFromSnippet(self, snippet_json, ident="No ID"):
 		"""
 		Grab and return the text value of the 'search_results' attribute of the main snippet JSON
 
@@ -174,7 +174,7 @@ class YelpListCrawler:
 			a string of the text value of the 'search_results' attribute
 		"""
 		if snippet_json != None:
-			snippet_search_results_value_regex = re.compile(r'"search_results":.*?(?P<search_results>".*),')
+			snippet_search_results_value_regex = re.compile(r'"search_results": (?P<search_results>".*)')
 			snippet_search_results_regex_match = snippet_search_results_value_regex.search(snippet_json)
 			if snippet_search_results_regex_match != None:
 				return snippet_search_results_regex_match.group('search_results')
@@ -203,7 +203,7 @@ class YelpListCrawler:
 		new_itmes = [] #temp store for newly created YelpItem instances
 
 		url_fail_count = None
-		json_fail_count = None
+		markers_fail_count = None
 
 		f = open('search_results.log', 'w')
 
@@ -218,13 +218,13 @@ class YelpListCrawler:
 			if url_fail_count == 4:
 				print "[Err] 4 URL errors...stopping crawl: " + ident
 
-			if json_fail_count == 4:
+			if markers_fail_count == 4:
 				print "[Err] 4 'markers' JSON errors...stopping crawl: " + ident
 			
 			url = self.snippet_url + str(item_count)
 			snippet_json = self.GetURLData(url)
 			if snippet_json != None:
-				markers_json = self.GetMarkersJSONFromSnippetData(snippet_json, ident)
+				markers_json = self.GetMarkersJSONFromSnippet(snippet_json, ident)
 			else:
 				url_fail_count += 1
 				continue				#don't count failed json extraction if URL failed
@@ -232,14 +232,14 @@ class YelpListCrawler:
 			if markers_json != None:
 				new_items = self.GetYelpItemObjectsFromMarkersJSON(markers_json, ident)
 			else:
-				json_fail_count += 1
+				markers_fail_count += 1
 
 			f.write("Short URLs for the snippet @ " + str(item_count) + "\n")
 			for item in new_items:
 				f.write("\t" + item.values['url'] + "\n")
 
 			f.write("\nsearch_results text:")
-			f.write(self.GetSearchResultsTextFromSnippet(snippet_json))
+			f.write(self.GetSearchResultsFromSnippet(snippet_json))
 			f.write("\n\n")
 
 			item_count += 10
@@ -253,6 +253,7 @@ class YelpListCrawler:
 		"""
 		print "[Msg] Pushing " + str(len(self.items)) + " items to DB"
 		cats = YelpItem.cats
+		db.Connect()
 		c = db.conn.cursor()
 
 		for item in self.items:
@@ -275,12 +276,11 @@ class YelpListCrawler:
 			except psycopg2.DataError as e:
 				print "[Err] Data error pushing row to DB: " + e.pgerror.replace('ERROR: ', '')
 
+		db.Close()
+
 	def Flush(self):
 		"""
 		Clear all YelpItem data stored in self.items
 		"""
 		print "[Msg] Flushing " + str(len(self.items)) + " local item's data"
 		self.items = []
-		
-
-	

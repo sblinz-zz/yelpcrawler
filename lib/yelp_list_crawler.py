@@ -201,9 +201,7 @@ class YelpListCrawler:
 		snippet_json = None
 		markers_json = None
 		new_itmes = [] #temp store for newly created YelpItem instances
-
-		url_fail_count = None
-		markers_fail_count = None
+		serach_results = ""
 
 		f = open('search_results.log', 'w')
 
@@ -215,32 +213,25 @@ class YelpListCrawler:
 			
 			ident = 'start=' + str(item_count)
 			
-			if url_fail_count == 4:
-				print "[Err] 4 URL errors...stopping crawl: " + ident
-
-			if markers_fail_count == 4:
-				print "[Err] 4 'markers' JSON errors...stopping crawl: " + ident
-			
+			#Get Snippet
 			url = self.snippet_url + str(item_count)
 			snippet_json = self.GetURLData(url)
+
+			#Check for 'over the end' snippet
+			if "search_exception" in snippet_json:
+				print "[Msg] Reached final snippet...stoppping crawl: " + ident
+				break
+
+			#Get and parse markers JSON
 			if snippet_json != None:
 				markers_json = self.GetMarkersJSONFromSnippet(snippet_json, ident)
 			else:
-				url_fail_count += 1
-				continue				#don't count failed json extraction if URL failed
+				print "[Err] Snippet JSON empty...stopping crawl: " + ident
 
 			if markers_json != None:
 				new_items = self.GetYelpItemObjectsFromMarkersJSON(markers_json, ident)
 			else:
-				markers_fail_count += 1
-
-			f.write("Short URLs for the snippet @ " + str(item_count) + "\n")
-			for item in new_items:
-				f.write("\t" + item.values['url'] + "\n")
-
-			f.write("\nsearch_results text:")
-			f.write(self.GetSearchResultsFromSnippet(snippet_json))
-			f.write("\n\n")
+				print "[Err] Markers JSON empty...stopping crawl: " + ident	
 
 			item_count += 10
 

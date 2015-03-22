@@ -182,6 +182,24 @@ class YelpListCrawler:
 				print "[Err] No match for 'search_results' text value in snippet data: " + ident
 				return None
 
+	def UpdateYelpItemsWithSearchResultsData(self, items, search_results, ident="No ID"):
+		"""
+		Fill YelpItems with remaining DB data from the snippet JSON search_results attribute
+
+		Params:
+			@items: an array of YelpItem instances which already containt short-url's
+			@search_results: the value of the snippet JSON 'search_results' attributes
+			@ident: logging id (will be augmented here)
+
+		Modifies:
+			Updates the values of the YelpItem instances when their short url appears in search_results
+		"""
+
+		for item in items:
+			if item.values[url] not in search_results:
+				print "[Err] YelpItem url is not in search_results value: " + ident + " : " + item.values[url]
+			else:
+
 	"""
 	###########################################################
 	Operational methods: Crawl, Push to DB, Flush local storage
@@ -217,9 +235,9 @@ class YelpListCrawler:
 			url = self.snippet_url + str(item_count)
 			snippet_json = self.GetURLData(url)
 
-			#Check for 'over the end' snippet
+			#Check for exception snippet
 			if "search_exception" in snippet_json:
-				print "[Msg] Reached final snippet...stoppping crawl: " + ident
+				print "[Msg] Reached exception snippet...stoppping crawl: " + ident
 				break
 
 			#Get and parse markers JSON
@@ -232,6 +250,10 @@ class YelpListCrawler:
 				new_items = self.GetYelpItemObjectsFromMarkersJSON(markers_json, ident)
 			else:
 				print "[Err] Markers JSON empty...stopping crawl: " + ident	
+
+			#Get and parse seach_results text
+			search_results = self.GetSearchResultsFromSnippet(snippet_json, ident)
+			self.UpdateYelpItemsWithSearchResultsData(new_items, search_results)
 
 			item_count += 10
 

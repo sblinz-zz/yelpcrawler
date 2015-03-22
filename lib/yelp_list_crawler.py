@@ -174,10 +174,17 @@ class YelpListCrawler:
 			a string of the text value of the 'search_results' attribute
 		"""
 		if snippet_json != None:
-			snippet_search_results_value_regex = re.compile(r'"search_results": (?P<search_results>".*)')
+			snippet_search_results_value_regex = re.compile(r'"search_results": "(?P<search_results>.*)", "snippet_serial')
 			snippet_search_results_regex_match = snippet_search_results_value_regex.search(snippet_json)
 			if snippet_search_results_regex_match != None:
-				return snippet_search_results_regex_match.group('search_results')
+				search_results = snippet_search_results_regex_match.group('search_results')
+
+				#Clean up search_results a little
+				search_results = search_results.replace("\u003c", "<")
+				search_results = search_results.replace("\u003e", ">")
+				search_results = search_results.replace("\\n", "\n")
+				
+			return search_results
 			else:
 				print "[Err] No match for 'search_results' text value in snippet data: " + ident
 				return None
@@ -196,9 +203,8 @@ class YelpListCrawler:
 		"""
 
 		for item in items:
-			if item.values[url] not in search_results:
-				print "[Err] YelpItem url is not in search_results value: " + ident + " : " + item.values[url]
-			else:
+			if item.values['url'] not in search_results:
+				print "[Err] YelpItem url is not in search_results value: " + ident + " : " + item.values['url']
 
 	"""
 	###########################################################
@@ -252,7 +258,7 @@ class YelpListCrawler:
 				print "[Err] Markers JSON empty...stopping crawl: " + ident	
 
 			#Get and parse seach_results text
-			search_results = self.GetSearchResultsFromSnippet(snippet_json, ident)
+			search_results = self.GetSearchResultsFromSnippet(snippet_json, ident)	
 			self.UpdateYelpItemsWithSearchResultsData(new_items, search_results)
 
 			item_count += 10

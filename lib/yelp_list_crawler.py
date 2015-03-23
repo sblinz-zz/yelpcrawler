@@ -6,11 +6,12 @@
 ##############################################################################################
 
 #packages
-import imp 				#nice module importing
-import urllib2 			#URL capture
-import re 				#regex's
-import json				#parsing json string <-> python dictionary
-import psycopg2			#DB connection
+import imp 						#nice module importing
+import urllib2 					#URL capture
+import re 						#regex's
+import json						#parsing json string <-> python dictionary
+import psycopg2					#DB connection
+from bs4 import BeautifulSoup	#HTML parsing
 
 #load local modules
 yi = imp.load_source('', 'yelp_item.py')
@@ -115,7 +116,7 @@ class YelpListCrawler:
 			@ident: logging id
 
 		Return:
-			An array of newly created YelpItem instances with data from markers JSON
+			An array of newly created YelpItem instances with basic item data from markers JSON
 		"""
 		try:
 			json_dict = json.loads(markers_json)
@@ -130,7 +131,7 @@ class YelpListCrawler:
 
 				#capture items URL attribute
 				if 'url' in json_dict[item_no]:
-					curr_item.values['url'] = json_dict[item_no]['url']
+					curr_item.values['url'] = str(json_dict[item_no]['url'])
 				else:
 					print "[Err] URL attribute missing from 'markers' JSON item " + str(item_no) + ": " + ident
 
@@ -178,14 +179,7 @@ class YelpListCrawler:
 			snippet_search_results_regex_match = snippet_search_results_value_regex.search(snippet_json)
 			if snippet_search_results_regex_match != None:
 				search_results = snippet_search_results_regex_match.group('search_results')
-
-				#Clean up search_results to make it more HTML-like
-				search_results = search_results.replace("\u003c", "<")
-				search_results = search_results.replace("\u003e", ">")
-				search_results = search_results.replace("\\n", "\n")
-				search_results = search_results.replace('\\"', '"')
 				return search_results
-
 			else:
 				print "[Err] No match for 'search_results' text value in snippet data: " + ident
 				return None
@@ -201,12 +195,47 @@ class YelpListCrawler:
 
 		Modifies:
 			Updates the values of the YelpItem instances when their short url appears in search_results
+
+		Notes:
+			Each item's URL appears in two anchor tags in the search_results html
+				-the first surrounds the item's image
+				-the second surrounds the itme's text name
 		"""
+		#Clean up the search_results for HTML parsing with beautiful soup
+		search_results = search_results.replace("\u003c", "<")
+		search_results = search_results.replace("\u003e", ">")
+		search_results = search_results.replace("\\n", "\n")
+		search_results = search_results.replace('\\"', '"')
+		soup = BeautifulSoup(search_results)
+
+		f = open('search_results.log', 'w')
+		f.write(items[0].values['url'])
+		f.write("\n\n")
+		f.write(search_results)
 
 		for item in items:
 			if item.values['url'] not in search_results:
 				print "[Err] YelpItem url is not in search_results value: " + ident + " : " + item.values['url']
+			else:
+				url = item.values['url']
 
+				##################
+				#Name
+				##################
+				"""
+				#Approach 1: the 'alt' of the item's image
+				#	-this anchor has no CSS class
+				a_tag = soup.find("a", href=url, class_="")
+				item.values['name'] = str(a_tag.img['alt']
+				"""
+
+				#Appraoch 2: the text inside the second anchor
+				#	-this anchor has the 'biz-name' CSS class
+				a_tag = soup.find("a", href=url, class_="biz-name")
+				item.values['name'] = str(a_tag.string)
+
+				print item.values
+				raw_input()
 	"""
 	###########################################################
 	Operational methods: Crawl, Push to DB, Flush local storage
@@ -228,9 +257,10 @@ class YelpListCrawler:
 		new_itmes = [] #temp store for newly created YelpItem instances
 		serach_results = ""
 
-		f = open('search_results.log', 'w')
+		while True:
 
-		while item_count < end:
+			if item_count >= end:
+				break
 
 			if len(self.items) == push_period:
 				self.PushItemsToDB(db)
@@ -242,9 +272,12 @@ class YelpListCrawler:
 			url = self.snippet_url + str(item_count)
 			snippet_json = self.GetURLData(url)
 
-			#Check for exception snippet
+			#Break if bad URL or exception snippet
 			if "search_exception" in snippet_json:
 				print "[Msg] Reached exception snippet...stoppping crawl: " + ident
+				break
+			if snippet_json == None:
+				print "[Err] URL error...stopping crawl: " + ident
 				break
 
 			#Get and parse markers JSON
@@ -258,9 +291,8 @@ class YelpListCrawler:
 			else:
 				print "[Err] Markers JSON empty...stopping crawl: " + ident	
 
-			#Get and parse seach_results text
-			search_results = self.GetSearchResultsFromSnippet(snippet_json, ident)	
-			f.write(search_results)
+			#Get and parse seach_results value
+			search_results = self.GetSearchResultsFromSnippet(snippet_json, ident)
 			self.UpdateYelpItemsWithSearchResultsData(new_items, search_results)
 
 			item_count += 10

@@ -219,20 +219,37 @@ class YelpListCrawler:
 			else:
 				url = item.values['url']
 
+				######################
+				#Capture Parent <div>
+				######################
+				#Need to store the parent <div> containing this item's HTML in order to navigate to the sub-tags
+				#This is crucial since only two anchor tags contain the item's URL; other tags don't have any item identifiers
+				#This <div> has an attribute 'data-key' whose value is the item's number in the snippet
+				#The 'data-key' value also appears just before the anchor tag around the item's name, which contains its url
+				#For example: '10.    <a href=... class="biz-name"...>Item Name</a>...'
+				a_name = soup.find("a", href=url, class_="biz-name")
+				num = (str(a_name.previous_element).split('.'))[0]
+				div = soup.find("div", attrs={"data-key" : num})
+				
 				##################
 				#Name
 				##################
 				"""
 				#Approach 1: the 'alt' of the item's image
 				#	-this anchor has no CSS class
-				a_tag = soup.find("a", href=url, class_="")
-				item.values['name'] = str(a_tag.img['alt']
+				a_img = div.find("a", href=url, class_="")
+				item.values['name'] = str(a_img.img['alt']
 				"""
 
 				#Appraoch 2: the text inside the second anchor
 				#	-this anchor has the 'biz-name' CSS class
-				a_tag = soup.find("a", href=url, class_="biz-name")
-				item.values['name'] = str(a_tag.string)
+				#Technically we already found this above, but we search inside the item's <div> for completness
+				a_name = div.find("a", href=url, class_="biz-name")
+				item.values['name'] = str(a_name.string)
+
+				##################
+				#Rating
+				##################
 
 				print item.values
 				raw_input()

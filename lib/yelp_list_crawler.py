@@ -229,7 +229,7 @@ class YelpListCrawler:
 				#For example: '10.    <a href=... class="biz-name"...>Item Name</a>...'
 				a_name = soup.find("a", href=url, class_="biz-name")
 				num = (str(a_name.previous_element).split('.'))[0]
-				div = soup.find("div", attrs={"data-key" : num})
+				div_item = soup.find("div", attrs={"data-key" : num})
 
 				##################
 				#Name
@@ -238,27 +238,38 @@ class YelpListCrawler:
 				#Appraoch 1: the text inside the second anchor
 				#	-this anchor has the 'biz-name' CSS class
 				#	-technically we already found this above, but we use the item's <div> for consistency
-				a_name = div.find("a", href=url, class_="biz-name")
+				a_name = div_item.find("a", href=url, class_="biz-name")
 				item.values['name'] = str(a_name.string)
 
 				
 				#Approach 2: the 'alt' of the item's image
 				#	-this anchor has no CSS class
-				#a_img = div.find("a", href=url, class_="")
+				#a_img = div_item.find("a", href=url, class_="")
 				#item.values['name'] = str(a_img.img['alt']
 				
 				##################
 				#Rating
 				##################
-
-				rating_div = div.find("div", class_="rating-large")
-				rating_title = rating_div.i['title']
+				div_rating = div_item.find("div", class_="rating-large")
+				i_rating_title = div_rating.i['title']
 				try:
-					item.values['rating'] = float(str(rating_title).split(' ')[0])
+					item.values['rating'] = float(str(i_rating_title).split(' ')[0])
 				except ValueError:
-					print "[Err] Could not parse item rating: " + ident " > " + item.values['url']
+					print "[Err] Could not parse item rating: " + ident + " > " + item.values['url']
+				else:
+					if item.values['rating'] < 0 or item.values['rating'] > 5:
+						print "[Err] Rating value OOR: " + ident + " > " + item.values['url']
+						item.values['rating'] = None
 
-				
+				##################
+				#Price
+				##################
+				span_price = div_item.find("span", class_="business-attribute price-range")
+				price_string = len(span_price.string)
+				if price_string > 0 and price_string < 6:
+					item.values['price'] = price_string
+				else:
+					print "[Err] Price value OOR: " + ident + " > " + item.values['url']
 
 				print item.values
 				raw_input()

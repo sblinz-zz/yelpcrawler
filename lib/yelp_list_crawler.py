@@ -187,6 +187,7 @@ class YelpListCrawler:
 	def UpdateYelpItemsWithSearchResultsData(self, items, search_results, ident="No ID"):
 		"""
 		Fill YelpItems with remaining DB data from the snippet JSON search_results attribute
+		Use item url obtained from markers json to parse each item's html
 
 		Params:
 			@items: an array of YelpItem instances which already containt short-url's
@@ -215,41 +216,49 @@ class YelpListCrawler:
 
 		for item in items:
 			if item.values['url'] not in search_results:
-				print "[Err] YelpItem url is not in search_results value: " + ident + " : " + item.values['url']
+				print "[Err] YelpItem url is not in search_results value: " + ident + " > " + item.values['url']
 			else:
 				url = item.values['url']
 
 				######################
-				#Capture Parent <div>
+				#Parent <div>
 				######################
-				#Need to store the parent <div> containing this item's HTML in order to navigate to the sub-tags
-				#This is crucial since only two anchor tags contain the item's URL; other tags don't have any item identifiers
-				#This <div> has an attribute 'data-key' whose value is the item's number in the snippet
-				#The 'data-key' value also appears just before the anchor tag around the item's name, which contains its url
+				#store parent <div> containing this item's HTML to access subtags b/c subtags don't have item identifiers
+				#parent <div> has 'data-key' attribute (= item's number on page)
+				#data-key value appears as text before anchor tag for item name
 				#For example: '10.    <a href=... class="biz-name"...>Item Name</a>...'
 				a_name = soup.find("a", href=url, class_="biz-name")
 				num = (str(a_name.previous_element).split('.'))[0]
 				div = soup.find("div", attrs={"data-key" : num})
-				
+
 				##################
 				#Name
 				##################
-				"""
-				#Approach 1: the 'alt' of the item's image
-				#	-this anchor has no CSS class
-				a_img = div.find("a", href=url, class_="")
-				item.values['name'] = str(a_img.img['alt']
-				"""
 
-				#Appraoch 2: the text inside the second anchor
+				#Appraoch 1: the text inside the second anchor
 				#	-this anchor has the 'biz-name' CSS class
-				#Technically we already found this above, but we search inside the item's <div> for completness
+				#	-technically we already found this above, but we use the item's <div> for consistency
 				a_name = div.find("a", href=url, class_="biz-name")
 				item.values['name'] = str(a_name.string)
 
+				
+				#Approach 2: the 'alt' of the item's image
+				#	-this anchor has no CSS class
+				#a_img = div.find("a", href=url, class_="")
+				#item.values['name'] = str(a_img.img['alt']
+				
 				##################
 				#Rating
 				##################
+
+				rating_div = div.find("div", class_="rating-large")
+				rating_title = rating_div.i['title']
+				try:
+					item.values['rating'] = float(str(rating_title).split(' ')[0])
+				except ValueError:
+					print "[Err] Could not parse item rating: " + ident " > " + item.values['url']
+
+				
 
 				print item.values
 				raw_input()

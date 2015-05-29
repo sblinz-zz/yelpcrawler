@@ -24,7 +24,7 @@ class CityCrawler:
 		self.yelp_crawlers = [ylc.YelpListCrawler(self.city, self.state, search_phrase) for search_phrase in yelp_search_phrases]
 		self.yelp_db = db.YelpDBConn()
 
-	def CrawlYelp(self):
-		for ylc in self.yelp_crawlers:
-			ylc.Crawl(self.yelp_db, 0, 200)
-		self.yelp_db.Close()
+	def crawl_yelp(self):
+		for ylc in self.yelp_crawlers:		
+			ylc.crawl(self.yelp_db, 0, 200)
+		self.yelp_db.close()

@@ -7,7 +7,7 @@
 
 import imp
 
-cc= imp.load_source('', 'city_crawler.py')
+cc = imp.load_source('', 'city_crawler.py')
 
 ##############################################################################################
 """
@@ -19,7 +19,7 @@ TO DO:
 	3. Implement duplicate checking before pushing to DB
 """
 SF = cc.CityCrawler('San Francisco', 'CA')
-SF.CrawlYelp()
+SF.crawl_yelp()
 
 ##############################################################################################
 	

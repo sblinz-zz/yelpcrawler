@@ -94,13 +94,12 @@ class YelpListCrawler:
 		"""
 		if snippet != None:
 			snippet_markers_json_regex = re.compile(r'"markers":.*?(?P<markers>"[0-9]+".*\}{3,3})')
-			snippet_markers_regex_match = snippet_markers_json_regex.search(snippet)
-			if snippet_markers_regex_match != None:
-				return "{" + snippet_markers_regex_match.group('markers')
+			snippet_markers_json_regex_match = snippet_markers_json_regex.search(snippet)
+			if snippet_markers_json_regex_match != None:
+				return "{" + snippet_markers_json_regex_match.group('markers')
 			else:
 				print "[Err] No match for 'markers' JSON in snippet data - " + ident
-
-		return None
+				return None
 
 	def get_search_results_html_from_snippet(self, snippet, ident="No ID"):
 		"""
@@ -110,7 +109,11 @@ class YelpListCrawler:
 			@snippet: a string of the full snippet data
 			@ident: logging identification
 		"""
-		pass
+		if snippet != None:
+			snippet_search_results_html_regex = re.compile(r'"search_results":.*?",')
+			snippet_search_results_html_regex_match = snippet_search_results_html_regex.search(snippet)
+			if snippet_search_results_html_regex_match != None:
+				return 
 
 	def get_list_item_data(self, markers_json, search_results, ident="No ID"):
 		"""
@@ -118,12 +121,12 @@ class YelpListCrawler:
 		Snippet 'search_results' attribute is HTML with remaining data for each item
 
 		Params:
-			@markers_json: string of the markers json
-			@search_results: string of the search_results html
+			@markers_json: string of the markers JSON
+			@search_results: string of the search_results HTML
 			@ident: logging id
 
 		Modify:
-			Creates a YelpItem instance, calls two helper methods to fill it, and adds to self.items
+			Add filled YelpItem instance to self.items for each item in markers JSON
 		"""
 
 		#create markers dictionary to iterate over this lists items
@@ -133,9 +136,11 @@ class YelpListCrawler:
 			print "[Err] Converting 'markers' JSON failed - " + ident
 			return
 
+		#iterate over item numbers in markers json
+		#skip marker attributes not identifying an item
 		for item_no in markers_dict:
 			try:
-				int(item_no) 		#json main item_nos (should be) numbers of each item as they appear in the list		
+				int(item_no)	
 			except ValueError:
 				continue
 
@@ -146,15 +151,15 @@ class YelpListCrawler:
 
 	def get_item_data_from_markers_dict(self, yelp_item, markers_item_dict, ident='No ID'):
 		"""
-		Snippet JSON attribute 'markers' contains attributes url, longitude, latitude
+		Each markers item attribute contains attributes url, longitude, latitude
 
 		Params:
-			@markers_item_dict: a dictionary of the given item in the markers json
 			@yelp_item: YelpItem instance to fill
+			@markers_item_dict: a dictionary of the given item in the markers json
 			@ident: logging id
 
 		Modify:
-			Fill url and location data for given yelp item
+			Fill url and location data for given YelpItem instance
 		"""
 
 		#capture items URL attribute
@@ -180,11 +185,11 @@ class YelpListCrawler:
 
 	def get_item_data_from_search_results_html(self, yelp_item, search_results, ident="No ID"):
 		"""
-		Snippet JSON attribute 'markers' contains attributes url, longitude, latitude
-		Create YelpItem instances and fill these details
+		search_results html contains remaining data to grab, anchored by item url
 
 		Params:
-			@markers_json: a string of the markers json
+			@yelp_item: YelpItem instance to fill
+			@search_results: a string of the search_results html
 			@ident: logging identification
 
 		Modify:
@@ -197,13 +202,12 @@ class YelpListCrawler:
 		Crawl Yelp list page(s) for this instances city, state, and search_phrase 
 
 		Params:
+			@db: YelpDBConn instance with cursor to Yelp items table
 			@start: the first snippet url start number to crawl
 			@end: the last snippet url start number to crawl (inclusive)
 			@push_period: how often to push the populated YelpItems to the DB and flush; must be a multiple of 10
 		"""
 		item_count = start
-		snippet_data = None
-		markers_json = None
 
 		url_fail_count = 0
 		data_fail_count = 0
@@ -213,7 +217,6 @@ class YelpListCrawler:
 			push_period = 100
 
 		while item_count <= end:
-			print "Item count: " + str(item_count)
 			if len(self.items) == push_period:
 				try:
 					self.push_items_to_db(db)
@@ -238,7 +241,7 @@ class YelpListCrawler:
 				url_fail_count += 1
 				continue				#don't count data failure if URL failed
 
-			if self.markers_json != None or self.search_results != None:
+			if self.markers_json != None: #url from markers data is required
 				self.get_list_item_data(self.markers_json, self.search_results, ident)
 			else:
 				data_fail_count += 1

@@ -1,15 +1,12 @@
 ##############################################################################################
-# The Everything Pin Project
+# Yelp Crawler
 # 
-# File: lib\city_crawler.py
+# File: city_crawler.py
 # Desc: wrapper class for crawling an entire city
 ##############################################################################################
 
-import imp 						#better module importing
-
-#load local modules
-db = imp.load_source('', 'db.py')
-ylc = imp.load_source('', 'yelp_list_crawler.py')
+import db
+import yelp_list_crawler as ylc
 
 class CityCrawler:
 

@@ -1,12 +1,11 @@
 ##############################################################################################
-# The Everything Pin Project
+# Yelp Crawler
 # 
-# File: lib\yelp_list_crawler.py
+# File: yelp_list_crawler.py
 # Desc: crawler class for any yelp list page; creates an array of YelpItem objects
 ##############################################################################################
 
 #packages
-import imp 						#nice module importing
 import urllib2 					#URL capture
 import re 						#regex's
 import json						#parsing json string <-> python dictionary
@@ -14,7 +13,7 @@ import psycopg2					#DB connection
 from bs4 import BeautifulSoup 	#html parser
 
 #load local modules
-yi = imp.load_source('', 'yelp_item.py')
+import yelp_item as yi
 
 #####################################################################################
 # YELP LIST PAGE CRAWLER - Grab DB data from Yelp 'snippet' pages
@@ -144,7 +143,7 @@ class YelpListCrawler:
 			except ValueError:
 				continue
 
-			curr_item = YelpItem(self.search_phrase)
+			curr_item = yi.YelpItem(self.search_phrase)
 			self.get_item_data_from_markers_dict(curr_item, markers_dict[item_no], ident)
 			self.get_item_data_from_search_results_html(curr_item, search_results, ident)
 			self.items.append(curr_item)
@@ -222,15 +221,15 @@ class YelpListCrawler:
 					self.push_items_to_db(db)
 					self.flush()
 				except psycopg2.DataError as e:
-					print "[Err] Data error pushing row to DB - " + e.pgerror.replace('ERROR: ', '')
+					print("[Err] Data error pushing row to DB - " + e.pgerror.replace('ERROR: ', ''))
 			
 			ident = 'start=' + str(item_count)
 			
 			if url_fail_count == 4:
-				print "[Err] 4 URL errors...stopping crawl - " + ident
+				print("[Err] 4 URL errors...stopping crawl - " + str(ident))
 
 			if data_fail_count == 4:
-				print "[Err] 4 insufficient data errors...stopping crawl - " + ident
+				print ("[Err] 4 insufficient data errors...stopping crawl - " + str(ident))
 			
 			url = self.snippet_url + str(item_count)
 			self.snippet = self.get_snippet(url)
@@ -250,7 +249,7 @@ class YelpListCrawler:
 
 	def push_items_to_db(self, db):
 		print "[Msg] Pushing " + str(len(self.items)) + " items to DB"
-		cats = YelpItem.cats
+		cats = yi.YelpItem.cats
 		c = db.conn.cursor()
 
 		for item in self.items:
@@ -274,7 +273,7 @@ class YelpListCrawler:
 		"""
 		Empty all YelpItem data captured
 		"""
-		print "[Msg] Flushing " + str(len(self.items)) + " local item's data"
+		print("[Msg] Flushing " + str(len(self.items)) + " item's local data")
 		self.items = []
 		self.search_results = None
 		self.markers_json = None

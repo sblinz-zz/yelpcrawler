@@ -1,7 +1,7 @@
 ##############################################################################################
-# The Everything Pin Project
+# Yelp Crawler
 # 
-# File: lib\yelp_item.py
+# File: yelp_item.py
 # Desc: class representing a generic yelp item
 ##############################################################################################
 

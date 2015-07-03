@@ -113,7 +113,7 @@ class YelpListCrawler:
 			if snippet_markers_json_regex_match != None:
 				markers_string =  "{" + snippet_markers_json_regex_match.group('markers')
 			else:
-				print("[Err] No match for 'markers' JSON in snippet data - " + ident)
+				print("[Err] No match for markers in snippet - " + ident)
 				return None
 
 			#create markers dictionary to iterate over this lists items
@@ -143,11 +143,13 @@ class YelpListCrawler:
 				search_results = search_results.replace('\u003c', '<')
 				search_results = search_results.replace('\u003e', '>')
 				search_results = search_results.replace('\u0026', '&')
+				search_results = search_results.replace('\u2019', "'")
 				search_results = search_results.replace('\\n', '\n')
 				search_results = search_results.replace('\\"', '"')
 				return search_results
 
 		else:
+			print("[Err] No match for search_results attribute in snippet - "  + ident)
 			return None
 
 	########################################
@@ -159,8 +161,11 @@ class YelpListCrawler:
 
 	def get_list_item_data(self, markers_dict, search_results, ident="No ID"):
 		"""
-		Snippet 'markers' attribute is a JSON with url and location data for each item
-		Snippet 'search_results' attribute is HTML with remaining data for each item
+		Snippet markers attribute is a JSON with url and location data for each item
+		Snippet search_results attribute is HTML with remaining data for each item
+
+		Parent method iterating over all items in markers and call resepective methods to
+		fill data from markers and search_results
 
 		Params:
 			@markers_dict: markers JSON as a dictionary
@@ -222,15 +227,46 @@ class YelpListCrawler:
 	def get_item_data_from_search_results_html(self, yelp_item, search_results, ident="No ID"):
 		"""
 		search_results html contains remaining data to grab, anchored by item url
+		parse with beautifulsoup for the given YelpItem instance
 
 		Params:
 			@yelp_item: YelpItem instance to fill
-			@search_results: a string of the search_results html
+			@search_results: a string of the search_results clean html
 			@ident: logging identification
 
 		Modify:
-			Add newly created YelpItems to member array self.items
+			Add data values from search_results to YelpItem instance
 		"""
+		url = yelp_item.values['url']
+		if url != None:
+			soup = BeautifulSoup(search_results)
+
+			#Find the name attribute using <a href="url" class="biz-name">...</a>
+			#Use the <a class="biz-name"> tag to locate the two main <div> tags for this item
+			a_biz_name = soup.find('a', href=url, class_='biz-name')
+			div_main_attributes = a_biz_name.find_parent("div", class_="main-attributes")
+			div_secondary_attributes = div_main_attributes.find_next_sibling("div", class_="secondary-attributes")
+			
+			#Name
+			yelp_item.values['name'] = a_biz_name.string
+
+			#Address
+			#
+			#<div class="secondary-attributes">
+			#	<address>
+			#		street adddress
+			#		<br>city, state</br>
+			#	</address>
+			#</div>
+			street = div_secondary_attributes.address.contents[0].replace("\n", "").replace("            ", "")
+			city_state = div_secondary_attributes.address.br.string.replace("\n", ""))
+			yelp_item.values['address'] = street + ", " + city_state
+
+			#Rating
+
+			#Price
+
+			#Phone
 
 	#######################################
 	#Crawl Operations Methods

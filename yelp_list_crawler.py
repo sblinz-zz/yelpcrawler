@@ -20,7 +20,7 @@ import yelp_item as yi
 #	
 #	GRABBING BASIC DB INFO:
 #	-A so-called 'snippet' URL can be built for a given category, location, and 
-#		item start number which returns one large JSON.
+#		item start number which returns a JSON.
 #			
 #	http://www.yelp.com/search/snippet?find_desc=Restaurants&find_loc=San%20Francisco%2C%20CA&start=10
 #
@@ -45,8 +45,8 @@ import yelp_item as yi
 #	-parse the markers json into YelpItem instances for each of the items
 #
 #	GRABBING REMAINING DB INFO:
-#	-Each item attribute in the 'markers' JSON has an attribute 'search_results' 
-#		whose value is a string with html that contains the remaining DB data we need
+#	-The parent snippet JSON contains an attribute 'search_results' whose value is a
+#		long string with html that contains the remaining DB data we need for each item
 #
 ######################################################################################
 
@@ -60,13 +60,26 @@ class YelpListCrawler:
 		self.snippet_url = "http://www.yelp.com/search/snippet?find_desc=" + \
 							str(self.search_phrase) + "&find_loc=" + str(self.city) +  \
 							"%2C+" + str(self.state) + "&start=" 
-		self.snippet = None			#snippet data for extracting markers json and search_results attribute
-		self.markers_json = None	
-		self.search_results_html = None
+		self.snippet = None					#snippet json string for extracting markers json and search_results attributes
+		self.markers_dict = None			#markers json dictionary
+		self.search_results_html = None		#search_results html string
 
+		#Logging/Debugging
+		self.log = open('yelpcrawler.log', 'w')
+
+	########################################
+	#Scrape URL Methods
+	#	-snippet JSON
+	#	-markers JSON from snippet
+	#	-search_results html from snippet
+	########################################
+	
 	def get_snippet(self, url):
 		"""
 		@url is identifier for logging
+
+		Returns:
+			snippet json as a string
 		"""
 		try:
 			data = urllib2.urlopen(url)
@@ -74,68 +87,91 @@ class YelpListCrawler:
 			if data_str != None:
 				return data_str
 			else:
-				print "[Err] URL data empty - " + url
+				print("[Err] URL data empty - " + url)
 				return None
 		except ValueError:									#Incorrect URL format
-			print "[Err] Invalid URL format - " + url
+			print("[Err] Invalid URL format - " + url)
 		except urllib2.URLError:							#Cannot connect to URL
-			print "[Err] Could not connect to URL - " + url 
+			print("[Err] Could not connect to URL - " + url) 
 
 		return None
 
-	def get_markers_json_from_snippet(self, snippet, ident='No ID'):
+	def get_markers_dict_from_snippet(self, snippet, ident='No ID'):
 		"""
-		Regex capture the 'markers' JSON string from the full snippet data
+		Regex capture the markers JSON as a string from the full snippet string
 
 		Params:
-			@snippet: a string of the full snippet data
+			@snippet: a string of the full snippet json
 			@ident: logging identification
+
+		Return:
+			markers json as a string (it is converted to and used as a dictionary in )
 		"""
 		if snippet != None:
 			snippet_markers_json_regex = re.compile(r'"markers":.*?(?P<markers>"[0-9]+".*\}{3,3})')
 			snippet_markers_json_regex_match = snippet_markers_json_regex.search(snippet)
 			if snippet_markers_json_regex_match != None:
-				return "{" + snippet_markers_json_regex_match.group('markers')
+				markers_string =  "{" + snippet_markers_json_regex_match.group('markers')
 			else:
-				print "[Err] No match for 'markers' JSON in snippet data - " + ident
+				print("[Err] No match for 'markers' JSON in snippet data - " + ident)
 				return None
+
+			#create markers dictionary to iterate over this lists items
+			try:
+				markers_dict = json.loads(markers_string)
+				return markers_dict
+			except ValueError:
+				print("[Err] Converting 'markers' JSON failed - " + ident)
+				return
 
 	def get_search_results_html_from_snippet(self, snippet, ident="No ID"):
 		"""
-		Snippet JSON attribute 'search_results' contains html with remaining DB data
+		Regex campture the the search_results attribute of the snippet json
 
 		Params:
-			@snippet: a string of the full snippet data
+			@snippet: a string of the full snippet json
 			@ident: logging identification
+
+		Returns:
+			search_results attribute value as a string with correct html
 		"""
 		if snippet != None:
-			snippet_search_results_html_regex = re.compile(r'"search_results":.*?",')
+			snippet_search_results_html_regex = re.compile(r'"search_results":[ ]*"(?P<search_results>.*?)",', re.DOTALL)
 			snippet_search_results_html_regex_match = snippet_search_results_html_regex.search(snippet)
 			if snippet_search_results_html_regex_match != None:
-				return 
+				search_results = snippet_search_results_html_regex_match.group('search_results')
+				search_results = search_results.replace('\u003c', '<')
+				search_results = search_results.replace('\u003e', '>')
+				search_results = search_results.replace('\u0026', '&')
+				search_results = search_results.replace('\\n', '\n')
+				search_results = search_results.replace('\\"', '"')
+				return search_results
 
-	def get_list_item_data(self, markers_json, search_results, ident="No ID"):
+		else:
+			return None
+
+	########################################
+	#Get List Item Data Methods
+	#	-parent method
+	#	-markers item data (basic data)
+	#	-search results item data parent
+	########################################
+
+	def get_list_item_data(self, markers_dict, search_results, ident="No ID"):
 		"""
 		Snippet 'markers' attribute is a JSON with url and location data for each item
 		Snippet 'search_results' attribute is HTML with remaining data for each item
 
 		Params:
-			@markers_json: string of the markers JSON
-			@search_results: string of the search_results HTML
+			@markers_dict: markers JSON as a dictionary
+			@search_results: search_results HTML as a string
 			@ident: logging id
 
 		Modify:
 			Add filled YelpItem instance to self.items for each item in markers JSON
 		"""
 
-		#create markers dictionary to iterate over this lists items
-		try:
-			markers_dict = json.loads(markers_json)
-		except ValueError:
-			print "[Err] Converting 'markers' JSON failed - " + ident
-			return
-
-		#iterate over item numbers in markers json
+		#iterate over item numbers in the markers json dictionary
 		#skip marker attributes not identifying an item
 		for item_no in markers_dict:
 			try:
@@ -144,17 +180,18 @@ class YelpListCrawler:
 				continue
 
 			curr_item = yi.YelpItem(self.search_phrase)
-			self.get_item_data_from_markers_dict(curr_item, markers_dict[item_no], ident)
+			self.get_item_data_from_markers_item_dict(curr_item, markers_dict[item_no], ident)
 			self.get_item_data_from_search_results_html(curr_item, search_results, ident)
 			self.items.append(curr_item)
 
-	def get_item_data_from_markers_dict(self, yelp_item, markers_item_dict, ident='No ID'):
+
+	def get_item_data_from_markers_item_dict(self, yelp_item, markers_item_dict, ident='No ID'):
 		"""
 		Each markers item attribute contains attributes url, longitude, latitude
 
 		Params:
 			@yelp_item: YelpItem instance to fill
-			@markers_item_dict: a dictionary of the given item in the markers json
+			@markers_item_dict: a dictionary of the given item in the markers dictionary
 			@ident: logging id
 
 		Modify:
@@ -165,22 +202,22 @@ class YelpListCrawler:
 		if 'url' in markers_item_dict:
 			yelp_item.values['url'] = markers_item_dict['url']
 		else:
-			print "[Err] URL attribute missing from 'markers' JSON item - : " + ident + " : " + str(item_no) 
+			print("[Err] URL attribute missing from 'markers' JSON item - : " + ident + " : item no. " + str(item_no))
 
 		#capture items location attribute
 		if 'location' in markers_item_dict:
 			if 'longitude' in markers_item_dict['location']:
 				yelp_item.values['longitude'] = markers_item_dict['location']['longitude']
 			else:
-				print "[Err] Location : longitude attribute missing from 'markers' JSON item - " + ident + " : " + str(item_no) 
+				print("[Err] Location : longitude attribute missing from 'markers' JSON item - " + ident + " : item no. " + str(item_no)) 
 
 			if 'latitude' in markers_item_dict['location']:
 				yelp_item.values['latitude'] = markers_item_dict['location']['latitude']	
 			else:
-				print "[Err] Location : latitude attribute missing from 'markers' JSON item - " + ident + " : " + str(item_no)
+				print("[Err] Location : latitude attribute missing from 'markers' JSON item - " + ident + " : item no. " + str(item_no))
 
 		else:
-			print "[Err] Location attribute missing from 'markers' JSON item - " + ident + " : " + str(item_no)
+			print("[Err] Location attribute missing from 'markers' JSON item - " + ident + " : item no. " + str(item_no))
 
 	def get_item_data_from_search_results_html(self, yelp_item, search_results, ident="No ID"):
 		"""
@@ -194,10 +231,17 @@ class YelpListCrawler:
 		Modify:
 			Add newly created YelpItems to member array self.items
 		"""
-		pass
+
+	#######################################
+	#Crawl Operations Methods
+	#	-main API method to crawl
+	#	-push item to DB
+	#	-flush local item data
+	########################################
 
 	def crawl(self, db, start=0, end=None, push_period=100):
 		"""
+		main API method
 		Crawl Yelp list page(s) for this instances city, state, and search_phrase 
 
 		Params:
@@ -234,14 +278,15 @@ class YelpListCrawler:
 			url = self.snippet_url + str(item_count)
 			self.snippet = self.get_snippet(url)
 			if self.snippet != None:
-				self.markers_json = self.get_markers_json_from_snippet(self.snippet, ident)
-				self.search_results = self.get_search_results_html_from_snippet(self.snippet, ident)
+				self.markers_dict = self.get_markers_dict_from_snippet(self.snippet, ident)
+				self.search_results_html = self.get_search_results_html_from_snippet(self.snippet, ident)
+				self.log.write(self.search_results_html)
 			else:
 				url_fail_count += 1
 				continue				#don't count data failure if URL failed
 
-			if self.markers_json != None: #url from markers data is required
-				self.get_list_item_data(self.markers_json, self.search_results, ident)
+			if self.markers_dict != None: #url from markers data is required
+				self.get_list_item_data(self.markers_dict, self.search_results_html, ident)
 			else:
 				data_fail_count += 1
 

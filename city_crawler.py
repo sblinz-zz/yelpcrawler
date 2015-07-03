@@ -23,5 +23,5 @@ class CityCrawler:
 
 	def crawl_yelp(self):
 		for ylc in self.yelp_crawlers:		
-			ylc.crawl(self.yelp_db, 0, 200)
+			ylc.crawl(self.yelp_db, 0, 9)
 		self.yelp_db.close()

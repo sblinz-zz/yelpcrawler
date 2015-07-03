@@ -10,7 +10,7 @@
 ##########################################
 class YelpItem:
 
-	cats = ["name", "longitude", "latitude", "address", "rating", "price", "url", "search_phrase"]
+	cats = ["name", "longitude", "latitude", "address", "rating", "price", "phone", "url", "search_phrase"]
 
 	###################
 	#Initializers

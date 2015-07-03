@@ -259,7 +259,7 @@ class YelpListCrawler:
 			#	</address>
 			#</div>
 			street = div_secondary_attributes.address.contents[0].replace("\n", "").replace("            ", "")
-			city_state = div_secondary_attributes.address.br.string.replace("\n", ""))
+			city_state = div_secondary_attributes.address.br.string.replace("\n", "")
 			yelp_item.values['address'] = street + ", " + city_state
 
 			#Rating
@@ -267,6 +267,8 @@ class YelpListCrawler:
 			#Price
 
 			#Phone
+			phone = div_secondary_attributes.find("span", class_="biz-phone").string.replace("\n", "").replace("        ", "")
+			yelp_item.values['phone'] = phone
 
 	#######################################
 	#Crawl Operations Methods
